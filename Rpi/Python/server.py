@@ -5,7 +5,7 @@ PORT = 1024
 
 msg = b'Welcome!'
 
-with socket.socket() as s:
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
   s.bind((HOST, PORT))
   s.listen()
   conn, addr = s.accept()
