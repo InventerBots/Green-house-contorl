@@ -1,7 +1,7 @@
 import socket
 
-HOST = '169.254.80.147' # server IP
-PORT = 1024
+HOST = '0.0.0.0' # server IP
+PORT = 10004
 
 msg = b'Welcome!'
 

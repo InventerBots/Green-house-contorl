@@ -1,6 +1,5 @@
 #include <SPI.h>
 #include <Ethernet.h>
-#include <SparkFun_RHT03.h>
 
 const float scale = 0.24926686217008797653958944281525; // 255/1023
 const int tempData = 4;
@@ -8,10 +7,9 @@ int tempF;
 
 byte mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
 int port = 10003;
-IPAddress ip(192,168,0,177);
-IPAddress server(192,168,0,200);
+IPAddress ip(192, 168, 1, 177);
+IPAddress server(192, 168, 1, 220);
 
-RHT03 rht; // Create sensor object
 EthernetClient client;
 
 void setup() {
@@ -20,16 +18,15 @@ void setup() {
 
   pinMode(A0, INPUT);
   Serial.begin(115200);
-  while(!Serial) {
+  while (!Serial) {
     ;
   }
 
-  rht.begin(4);
-  
+
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("Ethernet shield not found.");
     while (true) {
-     delay(25) ; // do nothing, forever...
+      delay(25) ; // do nothing, forever...
     }
   }
   while (Ethernet.linkStatus() == LinkOFF) {
@@ -42,54 +39,53 @@ void setup() {
   if (client.connect(server, port)) {
     Serial.println("connected");
   } else {
-    
+
     Serial.println("Connection failed");
   }
 
   if (client.available()) {
     client.write('Hello World!');
   }
-/*<------------ Debug info ------------>*/
-//  Serial.print("client IP: ");
-//  Serial.println(ip);
-//  Serial.print("server IP: ");
-//  Serial.println(server);
-//  Serial.print("local IP: ");
-//  Serial.println(Ethernet.localIP());
-//  Serial.print("remote IP: ");
-//  Serial.println(client.remoteIP());
-//  Serial.print("remote port: ");
-//  Serial.println(client.remotePort());
-//  Serial.print("local port: ");
-//  Serial.println(client.localPort());
-//  Serial.print("connect feed back: ");
-//  Serial.println(client.connect(server, port));
+  /*<------------ Debug info ------------>*/
+  //  Serial.print("client IP: ");
+  //  Serial.println(ip);
+  //  Serial.print("server IP: ");
+  //  Serial.println(server);
+  //  Serial.print("local IP: ");
+  //  Serial.println(Ethernet.localIP());
+  //  Serial.print("remote IP: ");
+  //  Serial.println(client.remoteIP());
+  //  Serial.print("remote port: ");
+  //  Serial.println(client.remotePort());
+  //  Serial.print("local port: ");
+  //  Serial.println(client.localPort());
+  //  Serial.print("connect feed back: ");
+  //  Serial.println(client.connect(server, port));
 }
 
 void loop() {
-  int tempRaw = analogRead(A0);
-  if (client.available()) {
-    char c = client.read();
-    
-    
-    Serial.print(c);
-  }
-  //Serial.println(tempRaw); 
-  client.print(tempRaw);
-  
+  float tempRaw = analogRead(A0);
+  float iRawTemp = abs((((tempRaw * 10) / (1023 * 10)) - 1) * 1023);
+  int intTempRaw = (int)iRawTemp;
+
+  Serial.print("inverted:");
+  Serial.println(iRawTemp);
+  client.print(intTempRaw);
+  Serial.println(tempRaw);
+
   while (Serial.available()) {
     char inChar = Serial.read();
     if (Serial.read() == "e") {
       Serial.println("exiting");
       //stopClient(client);
     }
-    
+
     if (client.connected()) {
       client.write(inChar);
     }
   }
 
- if (!client.connected()) {
+  if (!client.connected()) {
     stopClient(client);
   }
 
