@@ -73,23 +73,12 @@ void loop() {
   client.print(intTempRaw);
   Serial.println(tempRaw);
 
-  while (Serial.available()) {
-    char inChar = Serial.read();
-    if (Serial.read() == "e") {
-      Serial.println("exiting");
-      //stopClient(client);
-    }
-
-    if (client.connected()) {
-      client.write(inChar);
-    }
-  }
-
   if (!client.connected()) {
     stopClient(client);
   }
 
   delay(500);
+  //delay(500);
 }
 
 void stopClient(EthernetClient eClient) {
