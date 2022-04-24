@@ -6,7 +6,7 @@ const int tempData = 4;
 int tempF;
 
 byte mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
-int port = 10003;
+int port = 10004;
 IPAddress ip(192, 168, 1, 177);
 IPAddress server(192, 168, 1, 220);
 
@@ -70,9 +70,11 @@ void loop() {
 
   Serial.print("inverted:");
   Serial.println(iRawTemp);
-  client.print(intTempRaw);
+  client.print((int)tempRaw);
   Serial.println(tempRaw);
 
+  Serial.print("relay: ");
+  Serial.println(client.read());
   if (!client.connected()) {
     stopClient(client);
   }
