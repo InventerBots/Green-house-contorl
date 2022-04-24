@@ -27,5 +27,3 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
       else :
         conn.send(RELAY_OFF)
         print("off")
-
-      
