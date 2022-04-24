@@ -1,9 +1,8 @@
 import socket
 
-HOST = '169.254.80.147' # server IP
-PORT = 1024
-
-msg = b'Welcome!'
+OFFSET = 1.0769876281322618901231464338237
+HOST = '0.0.0.0' # server IP
+PORT = 10004
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
   s.bind((HOST, PORT))
@@ -12,10 +11,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
   with conn:
     print('Connected by', addr)
     while True:
-      data = conn.recv(1024)
-      if not data:
-        break
-      print("Receved: ", data)
-      print("Sent: ", msg)
-      conn.sendall(msg)
-
+      rawTemp=int(conn.recv(1023))
+      tempR=10000/(1023/rawTemp-1)
+      tempK=1/((1/298.15)+(1/3977))*OFFSET
+      tempF=(tempK-273.15)*(9/5)+32
+      print("Receved: ", tempF)
