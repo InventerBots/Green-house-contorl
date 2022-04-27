@@ -31,9 +31,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
       print(tempRaw[x])
 
       #--- fan control ---#
-      if tempF>80 :
-        conn.send(RELAY_ON)
-        print("on")
-      else :
-        conn.send(RELAY_OFF)
-        print("off")
+      # if tempF>80 :
+      #   conn.send(RELAY_ON)
+      #   print("on")
+      # else :
+      #   conn.send(RELAY_OFF)
+      #   print("off")
