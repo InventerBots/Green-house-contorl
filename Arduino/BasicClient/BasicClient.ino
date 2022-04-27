@@ -48,21 +48,6 @@ void setup() {
   if (client.available()) {
     client.write('Hello World!');
   }
-  /*<------------ Debug info ------------>*/
-  //  Serial.print("client IP: ");
-  //  Serial.println(ip);
-  //  Serial.print("server IP: ");
-  //  Serial.println(server);
-  //  Serial.print("local IP: ");
-  //  Serial.println(Ethernet.localIP());
-  //  Serial.print("remote IP: ");
-  //  Serial.println(client.remoteIP());
-  //  Serial.print("remote port: ");
-  //  Serial.println(client.remotePort());
-  //  Serial.print("local port: ");
-  //  Serial.println(client.localPort());
-  //  Serial.print("connect feed back: ");
-  //  Serial.println(client.connect(server, port));
 }
 
 void loop() {
