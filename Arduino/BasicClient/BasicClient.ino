@@ -1,8 +1,6 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
-const float scale = 0.24926686217008797653958944281525; // 255/1023
-const int tempData = 4;
 int tempF;
 
 byte mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
@@ -17,6 +15,8 @@ void setup() {
   Ethernet.begin(mac, ip);
 
   pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
   pinMode(2, OUTPUT);
   
   Serial.begin(115200);
@@ -66,25 +66,36 @@ void setup() {
 }
 
 void loop() {
+  // store all three sesnors in one array
+  int sensorVal[3] = {analogRead(A0), analogRead(A1), analogRead(A2)};
+  
   float tempRaw = analogRead(A0);
   float iRawTemp = abs((((tempRaw * 10) / (1023 * 10)) - 1) * 1023);
   int intTempRaw = (int)iRawTemp;
 
-  Serial.print("inverted:");
-  Serial.println(iRawTemp);
-  client.print((int)tempRaw);
-  Serial.println(tempRaw);
+  //Serial.print("inverted:");
+  //Serial.println(iRawTemp);
+  //client.print((int)tempRaw);
+  //Serial.println(tempRaw);
 
-  Serial.print("relay: ");
+  for(int x=0;x<3;x++) {
+    Serial.print("x: ");
+    Serial.println(x);
+    Serial.println(sensorVal[x]);
+    client.print(x);
+    client.print(sensorVal[x]);
+  }
+
+  //Serial.print("relay: ");
   int relay = client.read()+1;
-  Serial.println(relay);
+  //Serial.println(relay);
   digitalWrite(2, relay);
   
   if (!client.connected()) {
     stopClient(client);
   }
 
-  delay(100);
+  delay(1000);
 }
 
 void stopClient(EthernetClient eClient) {
