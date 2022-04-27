@@ -17,6 +17,8 @@ void setup() {
   Ethernet.begin(mac, ip);
 
   pinMode(A0, INPUT);
+  pinMode(2, OUTPUT);
+  
   Serial.begin(115200);
   while (!Serial) {
     ;
@@ -74,13 +76,15 @@ void loop() {
   Serial.println(tempRaw);
 
   Serial.print("relay: ");
-  Serial.println(client.read());
+  int relay = client.read()+1;
+  Serial.println(relay);
+  digitalWrite(2, relay);
+  
   if (!client.connected()) {
     stopClient(client);
   }
 
-  delay(500);
-  //delay(500);
+  delay(100);
 }
 
 void stopClient(EthernetClient eClient) {
