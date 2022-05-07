@@ -1,10 +1,15 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
+#define NUM_SESNSOR 3
+
 int tempF;
 
 byte mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
 int port = 10004;
+
+bool startUp = true;
+
 IPAddress ip(192, 168, 1, 177);
 IPAddress server(192, 168, 1, 220);
 
@@ -17,6 +22,7 @@ void setup() {
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
+  
   pinMode(2, OUTPUT);
   
   Serial.begin(115200);
@@ -63,11 +69,19 @@ void loop() {
   //client.print((int)tempRaw);
   //Serial.println(tempRaw);
 
+  if(startUp==true) {
+    startUp = false;
+    client.print('init');
+    client.print(3);
+    //Serial.println("startup");
+    //delay(100);
+  }
+  
   for(int x=0;x<3;x++) {
     Serial.print("x: ");
     Serial.println(x);
     Serial.println(sensorVal[x]);
-    client.print(x);
+//    client.print(x);
     client.print(sensorVal[x]);
   }
 
