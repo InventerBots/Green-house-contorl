@@ -26,10 +26,11 @@ void setup() {
   pinMode(2, OUTPUT);
   
   Serial.begin(115200);
-  while (!Serial) {
-    ;
-  }
+  // while (!Serial) {
+  //   ;
+  // }
 
+  Serial.println("Serial started");
 
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("Ethernet shield not found.");
@@ -61,35 +62,9 @@ void loop() {
   int sensorVal[3] = {analogRead(A0), analogRead(A1), analogRead(A2)};
   
   float tempRaw = analogRead(A0);
-  float iRawTemp = abs((((tempRaw * 10) / (1023 * 10)) - 1) * 1023);
-  int intTempRaw = (int)iRawTemp;
-
-  //Serial.print("inverted:");
-  //Serial.println(iRawTemp);
-  //client.print((int)tempRaw);
-  //Serial.println(tempRaw);
-
-  if(startUp==true) {
-    startUp = false;
-    client.print('init');
-    client.print(3);
-    //Serial.println("startup");
-    //delay(100);
-  }
   
-  for(int x=0;x<3;x++) {
-    Serial.print("x: ");
-    Serial.println(x);
-    Serial.println(sensorVal[x]);
-//    client.print(x);
-    client.print(sensorVal[x]);
-  }
+  Serial.println(tempRaw);
 
-  //Serial.print("relay: ");
-  int relay = client.read()+1;
-  //Serial.println(relay);
-  digitalWrite(2, relay);
-  
   if (!client.connected()) {
     stopClient(client);
   }
