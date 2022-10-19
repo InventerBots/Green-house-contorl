@@ -1,3 +1,4 @@
+import math
 import socket
 from time import sleep
 
@@ -14,24 +15,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
   with conn:
     print('Connected by', addr)
     while True:
-      temp = 0
+      tempRaw_12bit_int = 0
       for i in range(1, 4): 
-        print(i)
+        # print(i)
         conn.send(i.to_bytes(2, 'big'))
-        temp = int(conn.recv(4096))
-        print(temp)
-        if (int(temp) > 10000) :
-          conn.send(errorCode.to_bytes(2, 'big'))
-          print("bad reading")
-      
-      sleep(2)
+        tempRaw_12bit_int = int(conn.recv(4096))
+        print("12 bit value:", tempRaw_12bit_int)
 
+        #--- temperature calculations ---#
+        # convert the 12 bit analog signal to degs Kelven, then convert to degs Fahrenheit and Celsius
+        R = 10000 / (4096 / tempRaw_12bit_int - 1)
         
-    # while True:
-    #   data = conn.recv(1024)
-    #   if not data:
-    #     break
-    #   print("Receved: ", data)
-    #   print("Sent: ", msg)
-    #   conn.sendall(msg)
-
+        tempK = 1/((1/298.15)+(1/3977)*math.log(R/10000)) 
+        tempF = (tempK) * (9/5) - 459.67
+        tempC = (tempK) - 273.15
+        print("tempK:", tempK)
+        print("tempF:", tempF)
+        print()
+      sleep(2)
+      print('\n')
