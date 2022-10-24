@@ -14,7 +14,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
   conn, addr = s.accept()
   with conn:
     print('Connected by', addr)
-    while True:
+    while(conn):
+      if (not conn) :
+        break
       tempRaw_12bit_int = 0
       for i in range(1, 4): 
         # print(i)
@@ -34,3 +36,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print()
       sleep(2)
       print('\n')
+
+def shutdown() :
+  if (conn) :
+    conn.send(b'SHUTDOWN')
+    conn.detach()
+
+
