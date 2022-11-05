@@ -4,9 +4,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
+from gui_res import *
 
 import server
 
+window.__init__
 
 def close():
     server.disconnect()
