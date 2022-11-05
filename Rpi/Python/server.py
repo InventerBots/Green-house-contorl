@@ -5,6 +5,8 @@ from time import sleep
 HOST = '0.0.0.0' # ignore server IP
 PORT = 10004
 
+tempRaw_12bit_int = []
+
 def connect():
     global Connected_IP
     global Connected_Info
@@ -20,13 +22,20 @@ def connect():
 def disconnect():
     print('Closeing connection to', Connected_IP)
     Connected_Info.shutdown(socket.SHUT_RDWR)
+    Is_connected = False
     Connected_Info.close()
 
 def read_rawTemp(sensors_to_read):
-    global tempRaw_12bit_int
-    tempRaw_12bit_int = []
+    global tempRaw_12bit_int_local
+    tempRaw_12bit_int_local = []
 
+    
     if Is_connected :
-        for ind in range(1, sensors_to_read):
+        for ind in range(1, sensors_to_read+1):
             Connected_Info.send(ind.to_bytes(2, 'big'))
-            tempRaw_12bit_int.append(int(Connected_Info.recv(4096)))
+            tempRaw_12bit_int_local.append(int(Connected_Info.recv(4096)))
+    return tempRaw_12bit_int
+try:
+    tempRaw_12bit_int = tempRaw_12bit_int_local
+except:
+    tempRaw_12bit_int = 0
