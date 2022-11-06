@@ -7,23 +7,44 @@ PORT = 10004
 
 tempRaw_12bit_int = []
 
-def connect():
-    global Connected_IP
-    global Connected_Info
-    global Is_connected
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        s.listen()
-        Connected_Info, Connected_IP = s.accept()
-        Is_connected = True
-        print('Connected by', Connected_IP) # report connection IP for debuging
-
-def disconnect():
-    print('Closeing connection to', Connected_IP)
-    Connected_Info.shutdown(socket.SHUT_RDWR)
+class Server():
+    Connected_Info = 0
+    Connected_IP = 0
     Is_connected = False
-    Connected_Info.close()
+
+    def __init__(self):
+        super(socket, self).__init__
+
+    def connect(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST, PORT))
+            s.listen()
+            self.Connected_Info, self.Connected_IP = s.accept()
+            self.Is_connected = True
+            print('Connected by', self.Connected_IP) # report connection IP for debuging
+
+    def disconnect(self):
+        if self.Is_connected:
+            print('Closeing connection to', self.Connected_IP)
+            self.Connected_Info.shutdown(socket.SHUT_RDWR)
+            self.Is_connected = False
+            self.Connected_Info.close()
+        else:
+            print('No connections to close')
+
+# def connect():
+    # global Connected_IP
+    # global Connected_Info
+    # # global Is_connected
+
+    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    #     s.bind((HOST, PORT))
+    #     s.listen()
+    #     Connected_Info, Connected_IP = s.accept()
+    #     Is_connected = True
+    #     print('Connected by', Connected_IP) # report connection IP for debuging
+
+
 
 def read_rawTemp(sensors_to_read):
     global tempRaw_12bit_int_local
