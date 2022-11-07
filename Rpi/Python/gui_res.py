@@ -5,9 +5,12 @@ from PyQt5.QtWidgets import *
 from time import *
 import server
 class window(QWidget):
+    DisplayWidth = 800
+    DisplayHeight = 480
+
     def __init__(self):
         super(window, self).__init__()
-        self.resize(1200, 480)
+        self.resize(self.DisplayWidth, self.DisplayHeight)
         self.setWindowTitle("PyQt5")
         self.initUI()
 
@@ -20,14 +23,18 @@ class window(QWidget):
             self.label.setText("No connection")
 
         self.bConnect = QPushButton(self)
+        self.bConnect.setStyleSheet("background-color : green")
         self.bConnect.setText("Connect")
+        self.bConnect.resize(100, 50)
+        self.bConnect.move(int(self.DisplayWidth/2)-50, 0)
         self.bConnect.clicked.connect(self.connect)
-        self.bConnect.move(0, 0)
         
         self.bDinconnect = QPushButton(self)
+        self.bDinconnect.setStyleSheet("background-color : red")
+        self.bDinconnect.resize(100, 50)
+        self.bDinconnect.move(int(self.DisplayWidth/2)-50, 50)
         self.bDinconnect.setText("Disconnect")
         self.bDinconnect.clicked.connect(self.disconnect)
-        self.bDinconnect.move(0, 20)
         
     def connect(self):
         server.Server.connect(self)
