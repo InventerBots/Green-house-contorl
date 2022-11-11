@@ -10,6 +10,7 @@ tempRaw_12bit_int = []
 class Server():
     Connected_Info = 0
     Connected_IP = 0
+    tempRaw_12bit_int = []
     Is_connected = False
 
     def __init__(self):
@@ -22,6 +23,7 @@ class Server():
             self.Connected_Info, self.Connected_IP = s.accept()
             self.Is_connected = True
             print('Connected by', self.Connected_IP) # report connection IP for debuging
+            return self.Connected_IP
 
     def disconnect(self):
         if self.Is_connected:
@@ -31,32 +33,11 @@ class Server():
             self.Connected_Info.close()
         else:
             print('No connections to close')
-
-# def connect():
-    # global Connected_IP
-    # global Connected_Info
-    # # global Is_connected
-
-    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    #     s.bind((HOST, PORT))
-    #     s.listen()
-    #     Connected_Info, Connected_IP = s.accept()
-    #     Is_connected = True
-    #     print('Connected by', Connected_IP) # report connection IP for debuging
-
-
-
-def read_rawTemp(sensors_to_read):
-    global tempRaw_12bit_int_local
-    tempRaw_12bit_int_local = []
-
     
-    if Is_connected :
-        for ind in range(1, sensors_to_read+1):
-            Connected_Info.send(ind.to_bytes(2, 'big'))
-            tempRaw_12bit_int_local.append(int(Connected_Info.recv(4096)))
-    return tempRaw_12bit_int
-try:
-    tempRaw_12bit_int = tempRaw_12bit_int_local
-except:
-    tempRaw_12bit_int = 0
+    def read_rawTemp(self, sensors_to_read):
+        if self.Is_connected :
+            for ind in range(1, sensors_to_read+1):
+                self.Connected_Info.send(ind.to_bytes(2, 'big'))
+                self.tempRaw_12bit_int.append(int(self.Connected_Info.recv(4096)))
+        return tempRaw_12bit_int
+    
