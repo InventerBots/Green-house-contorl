@@ -1,6 +1,6 @@
-from PyQt6.QtGui import *
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 import server
 
@@ -14,6 +14,7 @@ class MainWindow(QMainWindow):
         self.counter = 0
         valMinWidth = 150
 
+        self.setWindowIcon(QIcon('pyLogo.png'))
         self.setWindowTitle("Greenhouse Control panel: Disconnected")
         self.setStyleSheet("background-color : rgb(47, 62, 67)")
         # self.setMinimumSize(800, 480)
@@ -129,7 +130,7 @@ class MainWindow(QMainWindow):
 
         mainLayout.addLayout(dataLayout_main, 0, 0)
         mainLayout.addLayout(btnLayout, 1, 0)
-        mainLayout.addLayout(fanLayout, 0, 1, 1, 1)
+        mainLayout.addLayout(fanLayout, 0, 2, 1, 2)
 
         lay = QWidget()
         lay.setLayout(mainLayout)
