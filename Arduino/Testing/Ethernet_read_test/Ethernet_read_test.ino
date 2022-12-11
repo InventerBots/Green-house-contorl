@@ -5,7 +5,7 @@ uint8_t mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
 int port = 10004;
 
 IPAddress ip(192, 168, 1, 178);
-IPAddress server(192, 168, 1, 200);  // RPi ip is 192.168.1.220
+IPAddress server(192, 168, 1, 220);  // RPi ip is 192.168.1.220
 
 EthernetClient client;
 
@@ -80,9 +80,9 @@ void loop() {
     if (error == 0) {  // if no error is present update data
       data = client.read();
       if (data > 0) {
-        dataCach = data - 1;  // shift server index to start range at 0
+        dataCach = data - 1;
       }
-      Serial.print("No error detected, recived index: ");
+      // Serial.print("No error detected, recived index: ");
       Serial.println(dataCach);
     }
     if (data > 0 || error != 0) {
