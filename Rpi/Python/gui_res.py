@@ -2,12 +2,13 @@ import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from time import sleep
+from time import sleep, process_time
 import server
 class window(QWidget):
     DisplayWidth = 800
     DisplayHeight = 480
     sensVal = 0
+    connectionStat = False
     
     def __init__(self):
         super(window, self).__init__()
@@ -22,7 +23,7 @@ class window(QWidget):
         self.fConnection.resize(250, 126)
         self.fConnection.setFrameShape(QFrame.StyledPanel)
         self.fConnection.setLineWidth(1)
-        self.fConnection.setStyleSheet("background-color : gray")
+        self.fConnection.setStyleSheet("background-color : white")
         self.fConnection.move(25, 25)
 
         self.fConnInd = QFrame(self)
@@ -31,8 +32,9 @@ class window(QWidget):
         self.fConnInd.move(252, 38)
         
         self.lConnStat = QLabel(self)
+        self.lConnStat.setText("No Connection")
         self.lConnStat.resize(137, 50)
-        self.lConnStat.setStyleSheet("background-color : gray")
+        self.lConnStat.setStyleSheet("background-color : transparent")
         self.lConnStat.move(137, 63)
         self.lConnStat.setAlignment(Qt.AlignCenter)
         self.lConnStat.wordWrap()
@@ -57,24 +59,37 @@ class window(QWidget):
         self.lSens_1.setText(str(self.sensVal))
         self.lSens_1.resize(100, 25)
         self.lSens_1.move(300, 25)
-        self.lSens_1.setStyleSheet("background-color : gray")
+        self.lSens_1.setStyleSheet("background-color : white")
         self.lSens_1.setAlignment(Qt.AlignCenter)
         
     def connect(self):
-        ip = server.Server.connect(self)
-        self.lConnStat.setText("Connected to\n" + str(ip))
+        server.Server.connect(server)
+        self.connectionStat = True
+        self.lConnStat.setText("Connected")
         self.fConnInd.setStyleSheet("background-color : green")
     
     def disconnect(self):
-        server.Server.disconnect(self)
-        self.lConnStat.setText("")
+        server.Server.disconnect(server)
+        self.connectionStat = False
+        self.lConnStat.setText("No Connection")
         self.fConnInd.setStyleSheet("background-color : red")
+
+    def updateLabel(self):
+        QApplication.processEvents()
     
 def main():
     app = QApplication(sys.argv)
     ex = window()
    
     ex.show()
+    window.updateLabel(window)
+
+    # val = 0
+    # cTime = process_time()
+    # if cTime > 1:
+    #     val += 1
+    # ex.update_lSens_1(val)
+    # print(str(val))
     sys.exit(app.exec_())
     
 if __name__ == '__main__':
