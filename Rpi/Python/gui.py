@@ -1,20 +1,21 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from collections import deque
 
 import server
-
-import time
+import tempCalc
 class MainWindow(QMainWindow):
     connectionStat = False
     displayRefreshRate = 5 # refresh display every 5 seconds
+    tempBuff = deque([])
+
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
         self.counter = 0
-        valMinWidth = 150
+        valMinWidth = 160
 
-        self.setWindowIcon(QIcon('pyLogo.png'))
         self.setWindowTitle("Greenhouse Control panel: Disconnected")
         self.setStyleSheet("background-color : rgb(47, 62, 67)")
         # self.setMinimumSize(800, 480)
@@ -98,10 +99,9 @@ class MainWindow(QMainWindow):
         self.l_Val_6.setAlignment(Qt.AlignmentFlag.AlignLeading)
         self.l_Val_6.setMargin(5)
 
-        self.connectedIP = QLabel() 
-        self.connectedIP.setFont(QFont('Default', 10))
-        self.connectedIP.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.connectedIP.hide()
+        self.l_rise_1 = QLabel('N/A')
+        self.l_rise_1.setFont(QFont('Default', 25))
+        self.l_rise_1.setStyleSheet("color : rgb(68, 81, 86)")
 
         b_Connect = QPushButton("Connect Client")
         b_Connect.setFont(QFont('Default', 15))
@@ -125,7 +125,6 @@ class MainWindow(QMainWindow):
         dataLayout_main.addLayout(dataLayout_col1)
         dataLayout_main.addLayout(dataLayout_col2)
         btnLayout.addWidget(b_Connect)
-        btnLayout.addWidget(self.connectedIP)
         btnLayout.addWidget(b_Disconnect)
 
         mainLayout.addLayout(dataLayout_main, 0, 0)
@@ -169,22 +168,33 @@ class MainWindow(QMainWindow):
         self.l_Val_4.setStyleSheet("color : rgb(68, 81, 86)")
         self.l_Val_5.setStyleSheet("color : rgb(68, 81, 86)")
         self.l_Val_6.setStyleSheet("color : rgb(68, 81, 86)")
-        self.connectedIP.clear()
-        self.connectedIP.hide()
 
     def recurring_timer(self):
         if self.connectionStat == False:
             return
+        
+        temp = server.Server.read_rawTemp(server, 3)
+        self.tempBuff.append(temp)
+        if len(self.tempBuff) > 2:
+            self.tempBuff.popleft()
+            # tempCalc.tempRise(10, self.tempBuff)
+        print(list(self.tempBuff))
 
-        server.Server.read_rawTemp(server, 3)
-        if self.displayRefreshRate <= 5:
-            self.displayRefreshRate += 1
-            return
-        self.l_Val_1.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[0]))+" °F")
-        self.l_Val_2.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[1]))+" °F")
-        self.l_Val_3.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[2]))+" °F")
+        # curVal = tempCalc.formatTemp(list(self.tempBuff[0]))
+        # pastVal = tempCalc.formatTemp(list(self.tempBuff[1]))
+        # if len(self.tempBuff) == 2:
+        #     print(tempCalc.tempRise(curVal, pastVal))
+        # print(curVal, pastVal)  
+        
+        
+        # print(self.tempBuff)
+        if self.displayRefreshRate == 5:
+            self.l_Val_1.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[0]))+" °F")
+            self.l_Val_2.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[1]))+" °F")
+            self.l_Val_3.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[2]))+" °F")
+            self.displayRefreshRate = 0
         server.tempRaw_12bit_int.clear()
-        self.displayRefreshRate = 0
+        self.displayRefreshRate += 1
         
         # self.counter +=1
         # self.l_Val_1.setText(str(self.counter))
