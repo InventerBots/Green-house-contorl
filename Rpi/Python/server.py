@@ -42,6 +42,11 @@ class Server():
             tempRaw_12bit_int.append(int(self.Connected_Info.recv(4096)))
         return tempRaw_12bit_int
 
+    def toggleOutput(self, code):
+        if self.Is_connected == False:
+            return -1
+        self.Connected_Info.send(int(code).to_bytes(2, 'big'))
+
     # ---------- Temp converters ---------- #
 
     def convertRawToDeg_K (rawTemp):

@@ -9,6 +9,7 @@ class MainWindow(QMainWindow):
     connectionStat = False
     displayRefreshRate = 5 # refresh display every 5 seconds
     tempBuff = deque([])
+    timeCount = 0
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -148,7 +149,7 @@ class MainWindow(QMainWindow):
         ip = server.Server.connect(server)
         self.connectionStat = True
         print("connected")
-        self.setWindowTitle("Greenhouse Control panel: "+str(ip))
+        self.setWindowTitle("Greenhouse Control panel: "+str(ip[0]))
         self.l_Val_1.setStyleSheet("color : rgb(255, 255, 255)")
         self.l_Val_2.setStyleSheet("color : rgb(255, 255, 255)")
         self.l_Val_3.setStyleSheet("color : rgb(255, 255, 255)")
@@ -174,28 +175,44 @@ class MainWindow(QMainWindow):
             return
         
         temp = server.Server.read_rawTemp(server, 3)
-        self.tempBuff.append(temp)
+        self.tempBuff.append(server.tempRaw_12bit_int.copy())
+        # server.tempRaw_12bit_int.clear()
         if len(self.tempBuff) > 2:
             self.tempBuff.popleft()
-            # tempCalc.tempRise(10, self.tempBuff)
-        print(list(self.tempBuff))
+            tempCalc.tempRise(60, 'F', 1800, self.tempBuff)
+        # print(self.tempBuff)
 
-        # curVal = tempCalc.formatTemp(list(self.tempBuff[0]))
-        # pastVal = tempCalc.formatTemp(list(self.tempBuff[1]))
-        # if len(self.tempBuff) == 2:
-        #     print(tempCalc.tempRise(curVal, pastVal))
-        # print(curVal, pastVal)  
+        D4_off = 140
+        D4_on = 141
+
+        
+        # print(self.timeCount)
+        # if self.timeCount == 0:
+        #     server.Server.toggleOutput(server, code0) # turn output 4 off
+        # self.timeCount += 1
+        # if self.timeCount == 1:
+        #     server.Server.toggleOutput(server, code1) # turn output 4 on
+        # if self.timeCount > 1:
+        #     self.timeCount = 0
         
         
         # print(self.tempBuff)
-        if self.displayRefreshRate == 5:
-            self.l_Val_1.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[0]))+" °F")
-            self.l_Val_2.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[1]))+" °F")
-            self.l_Val_3.setText(str('%.2f' % server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[2]))+" °F")
-            self.displayRefreshRate = 0
-        server.tempRaw_12bit_int.clear()
-        self.displayRefreshRate += 1
-        
+        try:
+            if(server.Server.convertRawToDeg_F(self.tempBuff[1][0]) > 75):
+                server.Server.toggleOutput(server, D4_on)
+                print('on')
+            else:
+                server.Server.toggleOutput(server, D4_off)
+                print('off')
+
+            if self.displayRefreshRate == 5:
+                self.l_Val_1.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][0]))+" °F")
+                self.l_Val_2.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][1]))+" °F")
+                self.l_Val_3.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][2]))+" °F")
+                self.displayRefreshRate = 0
+            self.displayRefreshRate += 1
+        except:
+            pass
         # self.counter +=1
         # self.l_Val_1.setText(str(self.counter))
 

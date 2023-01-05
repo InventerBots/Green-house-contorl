@@ -15,6 +15,8 @@ const uint8_t thermister_2 = A2;
 const uint8_t thermister_3 = A3;
 const uint8_t thermister_outside = A4;
 
+const uint8_t max_putputs = 8; // limit max number of outputs for error checking
+
 void setup() {
   Serial.begin(115200);
   while (!Serial) {  // wait for serial port to open
@@ -25,10 +27,22 @@ void setup() {
   Ethernet.init(10);        // use pin 10 for chip slect
   Ethernet.begin(mac, ip);  // start ethernet socket
 
-  analogReadResolution(12); // manualy set ADC resolution to 12 bit
+  analogReadResolution(12); // manualy set ADC resolution to 12 bit, does not work on UNO
   pinMode(thermister_0, INPUT);
   pinMode(thermister_1, INPUT);
   pinMode(thermister_2, INPUT);
+  pinMode(thermister_3, INPUT);
+  pinMode(thermister_outside, INPUT);
+
+  pinMode(0, OUTPUT);
+  pinMode(1, OUTPUT);
+  pinMode(2, OUTPUT);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);
+  pinMode(8, OUTPUT);
 
   bool hardwareStatus = false;
   while (!hardwareStatus) {
@@ -77,20 +91,41 @@ void loop() {
   int error = 0;
   
   if (client.available()) {
-    if (error == 0) {  // if no error is present update data
-      data = client.read();
-      if (data > 0) {
-        dataCach = data - 1;
+    data = client.read();
+    if (data > 0) {
+      dataCach = data - 1;
+    }
+    // Serial.print("No error detected, recived index: ");
+    // Serial.println(dataCach);
+  }
+  if (data > 0 && data < 100) {
+    // Serial.print("sending: ");
+    // Serial.println(sensorVal[dataCach]);
+    client.print(sensorVal[dataCach]);
+    data = 0;  // reset data to prevent spamming server
+  }
+
+/**
+* Output control
+*/
+  if (data > 10) {
+    double x = (data-100);
+    double inputDecode = x/100;     
+    double inputNum = round(10*inputDecode);
+    double y = inputDecode-inputNum/10;
+    double inputState = y*100;
+    if (inputNum <= max_putputs) {
+      if (inputState > 0){
+        Serial.println("on");
+        digitalWrite(int(inputNum), 1);
       }
-      // Serial.print("No error detected, recived index: ");
-      Serial.println(dataCach);
-    }
-    if (data > 0 || error != 0) {
-      Serial.print("sending: ");
-      Serial.println(sensorVal[dataCach]);
-      client.print(sensorVal[dataCach]);
-      data = 0;  // reset data to prevent spamming server
-    }
+      else {
+        Serial.println("off");
+        digitalWrite(int(inputNum), 0);
+      }
+      data = 0;
+      }
+    
   }
 
   client.flush();

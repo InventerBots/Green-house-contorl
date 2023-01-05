@@ -28,36 +28,34 @@ def formatTemp(unit, rawTemp=[]):
     rawTemp.clear()
     return temp
 
-def tempRise(bufferLen, que=deque([])):
+def tempRise(predictTime, tempUnit, bufferLen, que=deque([])):
     bufferLength = bufferLen
-    curVal:int = 5
     curentTemp = []
     pastTemp = []
     
     # for _set1 in range(len(que[0])):
     #     rise = 0
-    # try:
-    curentTemp = numpy.array(que[0])
-    pastTemp = numpy.array(que[1])
-    # print(curentTemp, pastTemp)
-    # print(que)
-    rise = numpy.subtract(curentTemp, pastTemp)
-    # print(rise)
+ 
+    curentTemp = que[0]
+    pastTemp = que[1]
 
-    # print(rise)
-    # que.clear()
-    
-    # print(curentTemp, pastTemp)
-    # for z in range(len(curentTemp)):
-    #     rise.append(numpy.subtract(pastTemp, curentTemp))
+    for c in range(len(curentTemp)):
+        curentTemp_deg = numpy.array(server.Server.convertRawToDeg_F(curentTemp[c]))
+    for p in range(len(pastTemp)):
+        pastTemp_deg = numpy.array(server.Server.convertRawToDeg_F(pastTemp[p]))
+    rise = numpy.subtract(pastTemp_deg, curentTemp_deg)
+    curentTemp_avg = numpy.average(curentTemp_deg)
     # print(rise)
 
     logSet.append(rise)
     if len(logSet) > bufferLength:
         logSet.popleft()
     # print(len(logSet), '\t', logSet)
-
-    # avrageRise = sum(list(logSet[0])) / len(list(logSet[0]))
+    print('Dataset size:', len(logSet))
+    avrageRise = numpy.average(logSet)
+    # print(avrageRise, curentTemp_avg)
+    
+    print('%.2f' % ((avrageRise*predictTime)+curentTemp_avg))
 
     if __name__ == '__main__':
         # print('rise:       ', rise)
