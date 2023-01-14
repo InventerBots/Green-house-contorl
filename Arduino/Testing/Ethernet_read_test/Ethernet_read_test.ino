@@ -5,7 +5,7 @@ uint8_t mac[] = { 0xA6, 0x61, 0x0A, 0xAE, 0x74, 0x86 };
 int port = 10004;
 
 IPAddress ip(192, 168, 1, 178);
-IPAddress server(192, 168, 1, 200);  // RPi ip is 192.168.1.220
+IPAddress server(192, 168, 1, 220);  // RPi ip is 192.168.1.220
 
 EthernetClient client;
 

@@ -199,10 +199,10 @@ class MainWindow(QMainWindow):
         # print(self.tempBuff)
         try:
             if(server.Server.convertRawToDeg_F(self.tempBuff[1][0]) > 75):
-                server.Server.toggleOutput(server, D4_on)
+                server.Server.sendComand(server, D4_on)
                 print('on')
-            else:
-                server.Server.toggleOutput(server, D4_off)
+            elif(server.Server.convertRawToDeg_F(self.tempBuff[1][0]) < 72):
+                server.Server.sendComand(server, D4_off)
                 print('off')
 
             if self.displayRefreshRate == 5:
