@@ -16,14 +16,24 @@ inputQue = deque([])
 def formatTemp(unit, rawTemp=[]):
     temp = []
     for x in range(len(rawTemp)):
-        match unit:
-            case "F": 
+        # try:
+        #     match unit:
+        #         case "F": 
+        #             temp.append(server.Server.convertRawToDeg_F(rawTemp[x]))
+        #         case "C":
+        #             temp.append(server.Server.convertRawToDeg_C(rawTemp[x]))
+        #         case "K":
+        #             temp.append(server.Server.convertRawToDeg_K(rawTemp[x]))
+        #         case _:
+        #             raise Exception('Invalid temperature unit')
+        # except:
+            if unit == "F": 
                 temp.append(server.Server.convertRawToDeg_F(rawTemp[x]))
-            case "C":
+            elif unit == "C":
                 temp.append(server.Server.convertRawToDeg_C(rawTemp[x]))
-            case "K":
+            elif unit == "K":
                 temp.append(server.Server.convertRawToDeg_K(rawTemp[x]))
-            case _:
+            else:
                 raise Exception('Invalid temperature unit')
     rawTemp.clear()
     return temp
