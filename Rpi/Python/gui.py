@@ -2,6 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from collections import deque
+import numpy
 
 import server
 import tempCalc
@@ -198,10 +199,10 @@ class MainWindow(QMainWindow):
         
         # print(self.tempBuff)
         try:
-            if(server.Server.convertRawToDeg_F(self.tempBuff[1][0]) > 75):
+            if(server.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) > 75):
                 server.Server.sendComand(server, D4_on)
                 print('on')
-            elif(server.Server.convertRawToDeg_F(self.tempBuff[1][0]) < 72):
+            elif(server.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) < 72):
                 server.Server.sendComand(server, D4_off)
                 print('off')
 
