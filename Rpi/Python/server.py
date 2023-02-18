@@ -33,6 +33,7 @@ class Server():
             print('No connections to close')
     
     def read_rawTemp(self, sensors_to_read):
+        tempRaw_12bit_int.clear()
         if self.Is_connected == False:
             return -1
             
@@ -41,18 +42,32 @@ class Server():
             tempRaw_12bit_int.append(int(self.Connected_Info.recv(4096)))
         return tempRaw_12bit_int
 
+    def sendComand(self, code):
+        if self.Is_connected == False:
+            return -1
+        self.Connected_Info.send(int(code).to_bytes(2, 'big'))
+
     # ---------- Temp converters ---------- #
 
     def convertRawToDeg_K (rawTemp):
-        R = 10000 / (4096 / int(rawTemp) - 1)
-        return 1/((1/298.15)+(1/3977)*log(R/10000))
+        try:
+            R = 10000 / (4096 / int(rawTemp) - 1)
+            return 1/((1/298.15)+(1/3977)*log(R/10000))
+        except:
+            Exception()
     
     def convertRawToDeg_F (rawTemp):
-        R = 10000 / (4096 / int(rawTemp) - 1)
-        tempK = 1/((1/298.15)+(1/3977)*log(R/10000)) 
-        return (tempK) * (9/5) - 459.67
+        try:
+            R = 10000 / (4096 / int(rawTemp) - 1)
+            tempK = 1/((1/298.15)+(1/3977)*log(R/10000)) 
+            return (tempK) * (9/5) - 459.67
+        except:
+            Exception()
 
     def convertRawToDeg_C (rawTemp):
-        R = 10000 / (4096 / int(rawTemp) - 1)
-        tempK = 1/((1/298.15)+(1/3977)*log(R/10000))
-        return (tempK) - 273.15
+        try:
+            R = 10000 / (4096 / int(rawTemp) - 1)
+            tempK = 1/((1/298.15)+(1/3977)*log(R/10000))
+            return (tempK) - 273.15
+        except:
+            Exception()
