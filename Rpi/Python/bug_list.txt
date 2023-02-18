@@ -1,1 +1,2 @@
 fix crashing when trying to connect once connected
+add timeout in connecting function
