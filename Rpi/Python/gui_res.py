@@ -3,7 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from time import sleep, process_time
-import server
+import server_old as server_old
 class window(QWidget):
     DisplayWidth = 800
     DisplayHeight = 480
@@ -63,13 +63,13 @@ class window(QWidget):
         self.lSens_1.setAlignment(Qt.AlignCenter)
         
     def connect(self):
-        server.Server.connect(server)
+        server_old.Server.connect(server_old)
         self.connectionStat = True
         self.lConnStat.setText("Connected")
         self.fConnInd.setStyleSheet("background-color : green")
     
     def disconnect(self):
-        server.Server.disconnect(server)
+        server_old.Server.disconnect(server_old)
         self.connectionStat = False
         self.lConnStat.setText("No Connection")
         self.fConnInd.setStyleSheet("background-color : red")

@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from collections import deque
 import numpy
 
-import server
+import Rpi.Python.server_old as server_old
 import tempCalc
 class MainWindow(QMainWindow):
     connectionStat = False
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
     def connectClient(self):
         print("connecting")
         # self.connectedIP.show()
-        ip = server.Server.connect(server)
+        ip = server_old.Server.connect(server_old)
         self.connectionStat = True
         print("connected")
         self.setWindowTitle("Greenhouse Control panel: "+str(ip[0]))
@@ -159,7 +159,7 @@ class MainWindow(QMainWindow):
         # self.l_Val_6.setStyleSheet("color : rgb(0, 0, 0)")
     
     def disconnectClient(self):
-        server.Server.disconnect(server)
+        server_old.Server.disconnect(server_old)
         self.connectionStat = False
         self.counter = 0
         print("disconnected")
@@ -175,8 +175,8 @@ class MainWindow(QMainWindow):
         if self.connectionStat == False:
             return
         
-        temp = server.Server.read_rawTemp(server, 3)
-        self.tempBuff.append(server.tempRaw_12bit_int.copy())
+        temp = server_old.Server.read_rawTemp(server_old, 3)
+        self.tempBuff.append(server_old.tempRaw_12bit_int.copy())
         # server.tempRaw_12bit_int.clear()
         if len(self.tempBuff) > 2:
             self.tempBuff.popleft()
@@ -199,17 +199,17 @@ class MainWindow(QMainWindow):
         
         # print(self.tempBuff)
         try:
-            if(server.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) > 75):
-                server.Server.sendComand(server, D4_on)
+            if(server_old.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) > 75):
+                server_old.Server.sendComand(server_old, D4_on)
                 print('on')
-            elif(server.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) < 72):
-                server.Server.sendComand(server, D4_off)
+            elif(server_old.Server.convertRawToDeg_F(numpy.average(self.tempBuff)) < 72):
+                server_old.Server.sendComand(server_old, D4_off)
                 print('off')
 
             if self.displayRefreshRate == 5:
-                self.l_Val_1.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][0]))+" °F")
-                self.l_Val_2.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][1]))+" °F")
-                self.l_Val_3.setText(str('%.2f' % server.Server.convertRawToDeg_F(self.tempBuff[1][2]))+" °F")
+                self.l_Val_1.setText(str('%.2f' % server_old.Server.convertRawToDeg_F(self.tempBuff[1][0]))+" °F")
+                self.l_Val_2.setText(str('%.2f' % server_old.Server.convertRawToDeg_F(self.tempBuff[1][1]))+" °F")
+                self.l_Val_3.setText(str('%.2f' % server_old.Server.convertRawToDeg_F(self.tempBuff[1][2]))+" °F")
                 self.displayRefreshRate = 0
             self.displayRefreshRate += 1
         except:

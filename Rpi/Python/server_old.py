@@ -17,6 +17,7 @@ class Server():
     def connect(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.listen()
             self.Connected_Info, self.Connected_IP = s.accept()
             self.Is_connected = True
