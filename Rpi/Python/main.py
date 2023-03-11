@@ -203,7 +203,6 @@ class MainWindow(QMainWindow):
         self.server_thread.timer.stop()
         self.server_thread.is_connected = False
         self.server_thread.disconnect()
-        self.server_thread.terminate = True
         
 app = QApplication(sys.argv)
 window = MainWindow()

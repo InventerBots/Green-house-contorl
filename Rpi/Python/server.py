@@ -32,7 +32,7 @@ class TCPServer:
         
     def disconnect(self):
         print('Server shutting down')
-        self.server_socket.shutdown(socket.SHUT_RD)
+        self.server_socket.shutdown(socket.SHUT_RDWR)
         self.server_socket.close()
 
 if __name__ == '__main__':
