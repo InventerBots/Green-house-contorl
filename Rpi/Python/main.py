@@ -4,12 +4,13 @@ from PyQt5.QtCore import *
 from threading import Thread
 from collections import deque
 import sys
+import os
 import socket
 import time
 import tempCalc
 import server
 
-class WorkerThread(QThread):
+class ServerThread(QThread):
     signal = pyqtSignal(str)
     
     def __init__(self):
@@ -25,6 +26,7 @@ class WorkerThread(QThread):
         
     def run(self):
         self.server_obj = server.TCPServer()
+        print('server pid {}'.format(os.getppid()))
     
     def mainLoop(self):
         self.connect()
@@ -55,16 +57,11 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.initUI()
+        print('pid {}'.format(os.getpid()))
         
-        # Setup server thread
         self.server_thread = None
-        # self.server_thread = WorkerThread()
-        # self.server_thread.start()
-        
         self.server_running = False
         
-        local_IP = socket.gethostbyname(socket.gethostname())
-
     def initUI(self):
         self.valMinWidth = 160
         self.setWindowTitle("Greenhouse Control panel: Disconnected")
@@ -154,17 +151,17 @@ class MainWindow(QMainWindow):
         self.l_rise_1.setFont(QFont('Default', 25))
         self.l_rise_1.setStyleSheet("color : rgb(68, 81, 86)")
 
-        b_Connect = QPushButton("Connect Client")
+        b_Connect = QPushButton("Start server")
         b_Connect.setFont(QFont('Default', 15))
         b_Connect.setStyleSheet("background-color : rgb(21, 93, 197); color : white")
         b_Connect.setMinimumHeight(50)
-        b_Connect.clicked.connect(self.connectClient)
+        b_Connect.clicked.connect(self.startServer)
         
-        b_Disconnect = QPushButton("Disconnect Client")
+        b_Disconnect = QPushButton("Stop server")
         b_Disconnect.setFont(QFont('Default', 15))
         b_Disconnect.setStyleSheet("background-color : rgb(21, 93, 197); color : white")
         b_Disconnect.setMinimumHeight(50)
-        b_Disconnect.clicked.connect(self.disconnectClient)
+        b_Disconnect.clicked.connect(self.stopServer)
 
         dataLayout_col1.addRow(self.val_1_label, self.l_Val_1)
         dataLayout_col1.addRow(self.val_3_label, self.l_Val_3)
@@ -193,25 +190,24 @@ class MainWindow(QMainWindow):
         # self.timer.timeout.connect(self.runServer)
         # self.timer.start()
 
-    def connectClient(self):
-        print("connecting")
+    def startServer(self):
         if not self.server_thread:
             print('starting server thread')
-            self.server_thread = WorkerThread()
+            self.server_thread = ServerThread()
             self.server_thread.start()
         # self.server_thread.connect()
         self.server_thread.timer.start()
         self.server_thread.is_connected = True
    
-    def disconnectClient(self):
-        print("disconnecting")
-        self.server_thread.timer.stop()
-        self.server_thread.is_connected = False
-        self.server_thread.disconnect()
-        self.server_thread.quit()
-        self.server_thread = None
-        if self.server_thread == None:
-            print('thread closed')
+    def stopServer(self):
+        if self.server_thread:
+            self.server_thread.timer.stop()
+            self.server_thread.is_connected = False
+            self.server_thread.disconnect()
+            self.server_thread.quit()
+            self.server_thread = None
+            if self.server_thread == None:
+                print('thread closed')
         
 app = QApplication(sys.argv)
 window = MainWindow()
