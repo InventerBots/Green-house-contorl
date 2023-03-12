@@ -45,6 +45,7 @@ class WorkerThread(QThread):
     def connect(self):
         if not self.conn_tup and self.is_connected:
             self.conn_tup = self.server_obj.acceptConnection()
+            print('Connected to {}'.format(self.conn_tup[1]))
         
     def disconnect(self):
         if not self.is_connected and self.conn_tup:

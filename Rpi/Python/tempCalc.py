@@ -1,8 +1,5 @@
-import Rpi.Python.server_old as server_old
-
 from collections import deque
 import numpy
-import time
 
 avrageRise:float = 0
 logSet = deque([])
@@ -13,15 +10,38 @@ bufferLength = 2
 
 inputQue = deque([])
 
+def convertRawToDeg_K (rawTemp):
+        try:
+            R = 10000 / (4096 / int(rawTemp) - 1)
+            return 1/((1/298.15)+(1/3977)*numpy.log(R/10000))
+        except:
+            Exception()
+    
+def convertRawToDeg_F (rawTemp):
+    try:
+        R = 10000 / (4096 / int(rawTemp) - 1)
+        tempK = 1/((1/298.15)+(1/3977)*numpy.log(R/10000)) 
+        return (tempK) * (9/5) - 459.67
+    except:
+        Exception()
+
+def convertRawToDeg_C (rawTemp):
+    try:
+        R = 10000 / (4096 / int(rawTemp) - 1)
+        tempK = 1/((1/298.15)+(1/3977)*numpy.log(R/10000))
+        return (tempK) - 273.15
+    except:
+        Exception()
+
 def formatTemp(unit, rawTemp=[]):
     temp = []
     for x in range(len(rawTemp)):
         if unit == "F": 
-            temp.append(server_old.Server.convertRawToDeg_F(rawTemp[x]))
+            temp.append(convertRawToDeg_F(rawTemp[x]))
         elif unit == "C":
-            temp.append(server_old.Server.convertRawToDeg_C(rawTemp[x]))
+            temp.append(convertRawToDeg_C(rawTemp[x]))
         elif unit == "K":
-            temp.append(server_old.Server.convertRawToDeg_K(rawTemp[x]))
+            temp.append(convertRawToDeg_K(rawTemp[x]))
         else:
             raise Exception('Invalid temperature unit')
     rawTemp.clear()
@@ -39,9 +59,9 @@ def tempRise(predictTime, tempUnit, bufferLen, que=deque([])):
     pastTemp = que[1]
 
     for c in range(len(curentTemp)):
-        curentTemp_deg = numpy.array(server_old.Server.convertRawToDeg_F(curentTemp[c]))
+        curentTemp_deg = numpy.array(convertRawToDeg_F(curentTemp[c]))
     for p in range(len(pastTemp)):
-        pastTemp_deg = numpy.array(server_old.Server.convertRawToDeg_F(pastTemp[p]))
+        pastTemp_deg = numpy.array(convertRawToDeg_F(pastTemp[p]))
     rise = numpy.subtract(pastTemp_deg, curentTemp_deg)
     curentTemp_avg = numpy.average(curentTemp_deg)
     # print(rise)
@@ -55,31 +75,3 @@ def tempRise(predictTime, tempUnit, bufferLen, que=deque([])):
     # print(avrageRise, curentTemp_avg)
     
     print('%.2f' % ((avrageRise*predictTime)+curentTemp_avg))
-
-    if __name__ == '__main__':
-        # print('rise:       ', rise)
-        # print('temp:       ', curVal)
-        # print('total rise: ', avrageRise)
-        # print(len(logSet))
-        print()
-        # print(tempVal, server.Server.convertRawToDeg_F(server.tempRaw_12bit_int[0]))
-        # print(rawVal)
-    return rise
-    # except:
-    #     raise Exception('Formated temperature not found')
-
-
-if __name__ == "__main__":
-    bufferLength = 10
-
-    server_old.Server.connect(server_old)
-    for _ in range(12):
-        server_old.Server.read_rawTemp(server_old, 3)
-        inputQue.append(server_old.tempRaw_12bit_int)
-        if len(inputQue) > 2:
-            inputQue.popleft()
-            tempRise(4, inputQue)
-        print(inputQue)            
-        
-        time.sleep(1)
-    server_old.Server.disconnect(server_old)

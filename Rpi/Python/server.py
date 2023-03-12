@@ -43,5 +43,6 @@ if __name__ == '__main__':
             server.openConnection(client_connection, 3)
             time.sleep(0.25)
         server.disconnect()
+        time.sleep(2)
     except KeyboardInterrupt:
         server.disconnect()
