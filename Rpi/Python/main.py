@@ -49,7 +49,7 @@ class WorkerThread(QThread):
         
     def disconnect(self):
         if not self.is_connected and self.conn_tup:
-            self.server_obj.disconnect()
+            self.server_obj.disconnect(self.conn_tup)
             
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -57,8 +57,9 @@ class MainWindow(QMainWindow):
         self.initUI()
         
         # Setup server thread
-        self.server_thread = WorkerThread()
-        self.server_thread.start()
+        self.server_thread = None
+        # self.server_thread = WorkerThread()
+        # self.server_thread.start()
         
         self.server_running = False
         
@@ -194,7 +195,10 @@ class MainWindow(QMainWindow):
 
     def connectClient(self):
         print("connecting")
-        self.server_thread.start()
+        if not self.server_thread:
+            print('starting server thread')
+            self.server_thread = WorkerThread()
+            self.server_thread.start()
         # self.server_thread.connect()
         self.server_thread.timer.start()
         self.server_thread.is_connected = True
@@ -204,6 +208,10 @@ class MainWindow(QMainWindow):
         self.server_thread.timer.stop()
         self.server_thread.is_connected = False
         self.server_thread.disconnect()
+        self.server_thread.quit()
+        self.server_thread = None
+        if self.server_thread == None:
+            print('thread closed')
         
 app = QApplication(sys.argv)
 window = MainWindow()

@@ -30,8 +30,10 @@ class TCPServer:
             self.tempRaw_12bit_int.append(int(client_socket.recv(4096)))
         print('reading')
         
-    def disconnect(self):
+    def disconnect(self, client):
         print('Server shutting down')
+        client_socket, client_address = client
+        client_socket.close()
         self.server_socket.shutdown(socket.SHUT_RDWR)
         self.server_socket.close()
 
@@ -42,6 +44,7 @@ if __name__ == '__main__':
         for x in range(0, 30):
             server.openConnection(client_connection, 3)
             time.sleep(0.25)
+        
         server.disconnect()
         time.sleep(2)
     except KeyboardInterrupt:
