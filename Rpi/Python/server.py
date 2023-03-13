@@ -28,7 +28,7 @@ class TCPServer:
         for ind in range(1, sensors_to_read+1):
             client_socket.send(ind.to_bytes(2, 'big'))
             self.tempRaw_12bit_int.append(int(client_socket.recv(4096)))
-        print('reading')
+        # print('reading')
         
     def disconnect(self, client):
         print('Server shutting down')

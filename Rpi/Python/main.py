@@ -4,6 +4,7 @@ from PyQt5.QtCore import *
 from threading import Thread
 from collections import deque
 import sys
+import numpy
 import os
 import socket
 import time
@@ -23,48 +24,48 @@ class ServerThread(QThread):
         self.is_connected = False
         self.conn_tup = None
         self.tempBuff = deque([])
+        self.tempRaw_12bit = []
         
     def run(self):
         self.server_obj = server.TCPServer()
-        print('server pid {}'.format(os.getppid()))
     
     def mainLoop(self):
-        self.connect()
-        # print(self.conn_tup)
-        
-        # if self.conn_tup and not self.is_connected:
-        #     self.server_obj.disconnect()
+        if not self.is_connected:
+            self.connect()
             
-        if len(self.tempBuff) < 1: # no connection has been established 
-            return
         if self.is_connected:
-            self.tempBuff.append(self.server_obj.openConnection(self.conn_tup, 3))
+            self.server_obj.openConnection(self.conn_tup, 3)
+            self.tempBuff.append(self.server_obj.tempRaw_12bit_int.copy())
         if len(self.tempBuff) > 2:
             self.tempBuff.popleft()
-        # print(self.tempBuff)
-        print(self.is_connected)
-        
+               
     def connect(self):
-        if not self.conn_tup and self.is_connected:
+        if not self.conn_tup and not self.is_connected:
             self.conn_tup = self.server_obj.acceptConnection()
             print('Connected to {}'.format(self.conn_tup[1]))
+            self.is_connected = True
         
     def disconnect(self):
         if not self.is_connected and self.conn_tup:
             self.server_obj.disconnect(self.conn_tup)
+            self.is_connected = False
             
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.initUI()
-        print('pid {}'.format(os.getpid()))
         
+        self.timer = QTimer()
+        self.timer.setInterval(250)
+        self.timer.timeout.connect(self.runServer)
+        
+        self.display_val = []
+        self.display_ind = 0
         self.server_thread = None
-        self.server_running = False
         
     def initUI(self):
         self.valMinWidth = 160
-        self.setWindowTitle("Greenhouse Control panel: Disconnected")
+        self.setWindowTitle("Greenhouse Control panel")
         self.setStyleSheet("background-color : rgb(47, 62, 67)")
         # self.setMinimumSize(800, 480)
         
@@ -185,31 +186,59 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(lay)
         self.show()
 
-        # self.timer = QTimer()
-        # self.timer.setInterval(250)
-        # self.timer.timeout.connect(self.runServer)
-        # self.timer.start()
+        self.timer = QTimer()
+        self.timer.setInterval(250)
+        self.timer.timeout.connect(self.runServer)
+        self.timer.start()
 
     def startServer(self):
         if not self.server_thread:
             print('starting server thread')
             self.server_thread = ServerThread()
             self.server_thread.start()
-        # self.server_thread.connect()
-        self.server_thread.timer.start()
-        self.server_thread.is_connected = True
-   
+            self.timer.start()
+            
+            self.l_Val_1.setStyleSheet("color : rgb(255, 255, 255)")
+            self.l_Val_2.setStyleSheet("color : rgb(255, 255, 255)")
+            self.l_Val_3.setStyleSheet("color : rgb(255, 255, 255)")
+            # self.l_Val_4.setStyleSheet("color : rgb(0, 0, 0)")
+            # self.l_Val_5.setStyleSheet("color : rgb(0, 0, 0)")
+            # self.l_Val_6.setStyleSheet("color : rgb(0, 0, 0)")
+        
+    def runServer(self):
+        if not self.server_thread:
+            return -1
+        self.server_thread.mainLoop()
+        
+        if self.display_ind < 4:
+            self.display_val.append(self.server_thread.tempBuff[0])
+            self.display_ind += 1
+        else:
+            self.l_Val_1.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[0]))) + ' °F')
+            self.l_Val_2.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[1]))) + ' °F')
+            self.l_Val_3.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[2]))) + ' °F')
+            
+            self.display_ind = 0
+            self.display_val.clear()
+        
     def stopServer(self):
         if self.server_thread:
-            self.server_thread.timer.stop()
-            self.server_thread.is_connected = False
+            self.timer.stop()
             self.server_thread.disconnect()
             self.server_thread.quit()
             self.server_thread = None
             if self.server_thread == None:
                 print('thread closed')
         
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-app.exec()
+        self.l_Val_1.setStyleSheet("color : rgb(68, 81, 86)")
+        self.l_Val_2.setStyleSheet("color : rgb(68, 81, 86)")
+        self.l_Val_3.setStyleSheet("color : rgb(68, 81, 86)")
+        self.l_Val_4.setStyleSheet("color : rgb(68, 81, 86)")
+        self.l_Val_5.setStyleSheet("color : rgb(68, 81, 86)")
+        self.l_Val_6.setStyleSheet("color : rgb(68, 81, 86)")
+        
+if __name__ == '__name__':
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
