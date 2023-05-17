@@ -1,32 +1,70 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from threading import Thread
 from collections import deque
 import sys
 import numpy
-import os
-import socket
-import time
 import tempCalc
 import server
+import mariadb as db
+from datetime import datetime
+
+class DatabaseInterface():
+    def __init__(self):
+        super().__init__()
+        try:
+            self.dbConn = db.connect(
+                user="gh",
+                password="admin",
+                host="127.0.0.1",
+                port=3306,
+                database="ghdb"
+            )
+        except db.Error as e:
+            print(f"Error connecting to MariaDB Paltform: {e}")
+            sys.exit(1)
+        self.dbCursor = self.dbConn.cursor()
+
+        self.date_MDY = datetime.today().strftime("%m_%d_%Y")
+        self.time_HMS = datetime.today().strftime("%H_%M")
+
+    def createTable(self):
+        self.tableName = f"dataset_{self.date_MDY}"
+        try:
+            self.dbCursor.execute(f"""CREATE TABLE {self.tableName} 
+            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
+            print("table created")
+        except db.Error as e:
+            if "already exists" not in str(e):
+                print(e)
+        return self.tableName
+
+    def insertIntoTable(self, table, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int):
+        try:
+            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2) VALUES 
+                (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2})""")
+            self.dbConn.commit()
+            
+        except db.Error as e:
+            print(e)
+
+    def closeConnection(self):
+        self.dbCursor.close()
+        self.dbConn.close()
+
 
 class ServerThread(QThread):
     signal = pyqtSignal(str)
     
     def __init__(self):
         super().__init__()
-        self.timer = QTimer()
-        self.timer.setInterval(250)
-        self.timer.timeout.connect(self.mainLoop)
-        # self.timer.start()
         
         self.is_connected = False
         self.conn_tup = None
         self.tempBuff = deque([])
         self.tempRaw_12bit = []
         self.logset_rise = deque([])
-        self.buff = 7200 # number of readings to keep, 7200 = 30s of data
+        self.buff = 7200 # number of readings to keep, 7200 = 30m of data
         
     def run(self):
         self.server_obj = server.TCPServer()
@@ -75,9 +113,15 @@ class ServerThread(QThread):
             self.is_connected = False
             
 class MainWindow(QMainWindow):
+    POLL_TIMER = 250
+    LOG_INTERVAL = 300 # log interval in seconds
+
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.initUI()
+
+        self.dbInterface = DatabaseInterface()
+        self.dbInterface.createTable()
         
         self.timer = QTimer()
         self.timer.setInterval(250)
@@ -85,6 +129,7 @@ class MainWindow(QMainWindow):
         
         self.display_val = []
         self.display_ind = 0
+        self.log_ind = -1
         self.buff = 0
         self.server_thread = None
         
@@ -222,7 +267,7 @@ class MainWindow(QMainWindow):
         self.show()
 
         self.timer = QTimer()
-        self.timer.setInterval(250)
+        self.timer.setInterval(int(self.POLL_TIMER))
         self.timer.timeout.connect(self.runServer)
         self.timer.start()
 
@@ -251,13 +296,30 @@ class MainWindow(QMainWindow):
             self.display_val.append(self.server_thread.tempBuff[0])
             self.display_ind += 1
         else:
-            self.l_Val_1.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[0]))) + ' °F')
-            self.l_Val_2.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[1]))) + ' °F')
-            self.l_Val_3.setText(str('%.2f' % tempCalc.convertRawToDeg_F(numpy.average(self.display_val[2]))) + ' °F')
+            self.l_Val_1_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[0]))
+            self.l_Val_2_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[1]))
+            self.l_Val_3_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[2]))
+            self.l_Val_1.setText(str('%.2f' % self.l_Val_1_dis) + ' °F')
+            self.l_Val_2.setText(str('%.2f' % self.l_Val_2_dis) + ' °F')
+            self.l_Val_3.setText(str('%.2f' % self.l_Val_3_dis) + ' °F')
             
+            if self.log_ind == -1: # log first reading at startup
+                self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+            self.log_ind += 1
+
             self.display_ind = 0
             self.display_val.clear()
+
         
+        if self.log_ind >= self.LOG_INTERVAL: 
+            self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+            self.log_ind = 0
+
+    def logData(self,Output0=int, Output1=int, Input0=int, Input1=int, Input2=int):
+        table = self.dbInterface.createTable()
+        print("logged data")
+        self.dbInterface.insertIntoTable(table, Output0, Output1, Input0, Input1, Input2)
+
     def stopServer(self):
         if self.server_thread:
             self.timer.stop()
