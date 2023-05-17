@@ -34,14 +34,18 @@ class DatabaseInterface():
             self.dbCursor.execute(f"""CREATE TABLE {self.tableName} 
             (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
             print("table created")
-        except:
-            pass
+        except db.Error as e:
+            print(e)
         return self.tableName
 
     def insertIntoTable(self, table, Time = str, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int):
-        self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2) VALUES 
-        (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2})""")
-        self.dbConn.commit()
+        try:
+            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2) VALUES 
+                (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2})""")
+            self.dbConn.commit()
+            
+        except db.Error as e:
+            print(e)
 
     def closeConnection(self):
         self.dbCursor.close()
