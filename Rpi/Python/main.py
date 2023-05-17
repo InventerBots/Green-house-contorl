@@ -9,6 +9,9 @@ import server
 import mariadb as db
 from datetime import datetime
 
+MAX_SENSORS = 5
+SENSORS_CONNECTED = 4
+
 class DatabaseInterface():
     def __init__(self):
         super().__init__()
@@ -32,17 +35,17 @@ class DatabaseInterface():
         self.tableName = f"dataset_{self.date_MDY}"
         try:
             self.dbCursor.execute(f"""CREATE TABLE {self.tableName} 
-            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
+            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int, Input_3 int);""")
             print("table created")
         except db.Error as e:
             if "already exists" not in str(e):
                 print(e)
         return self.tableName
 
-    def insertIntoTable(self, table, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int):
+    def insertIntoTable(self, table, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int, Input_3 = int):
         try:
-            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2) VALUES 
-                (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2})""")
+            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2, Input_3) VALUES 
+                (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2}, {Input_3})""")
             self.dbConn.commit()
             
         except db.Error as e:
@@ -74,7 +77,7 @@ class ServerThread(QThread):
             self.connect()
             
         if self.is_connected:
-            self.server_obj.openConnection(self.conn_tup, 3)
+            self.server_obj.openConnection(self.conn_tup, SENSORS_CONNECTED)
             self.tempBuff.append(self.server_obj.tempRaw_12bit_int.copy())
         if len(self.tempBuff) > 2:
             self.tempBuff.popleft()
@@ -282,11 +285,15 @@ class MainWindow(QMainWindow):
             self.l_Val_1.setStyleSheet("color : rgb(255, 255, 255)")
             self.l_Val_2.setStyleSheet("color : rgb(255, 255, 255)")
             self.l_Val_3.setStyleSheet("color : rgb(255, 255, 255)")
+            self.l_Val_4.setStyleSheet("color : rgb(255, 255, 255)")
             # self.l_Val_4.setStyleSheet("color : rgb(0, 0, 0)")
             # self.l_Val_5.setStyleSheet("color : rgb(0, 0, 0)")
             # self.l_Val_6.setStyleSheet("color : rgb(0, 0, 0)")
         
     def runServer(self):
+        tempList = []
+        valToDisplay = []
+
         if not self.server_thread:
             return -1
         self.server_thread.mainLoop()
@@ -296,15 +303,26 @@ class MainWindow(QMainWindow):
             self.display_val.append(self.server_thread.tempBuff[0])
             self.display_ind += 1
         else:
-            self.l_Val_1_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[0]))
-            self.l_Val_2_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[1]))
-            self.l_Val_3_dis = tempCalc.convertRawToDeg_F(numpy.average(self.display_val[2]))
+            for lab in range(MAX_SENSORS):
+                try:
+                    for x in range(len(self.display_val)):
+                        tempList.append(self.display_val[x][lab])
+                except:
+                    pass
+                valToDisplay.append(tempList.copy())
+                tempList.clear()
+            self.l_Val_1_dis = tempCalc.convertRawToDeg_F(numpy.average(valToDisplay[0]))
+            self.l_Val_2_dis = tempCalc.convertRawToDeg_F(numpy.average(valToDisplay[1]))
+            self.l_Val_3_dis = tempCalc.convertRawToDeg_F(numpy.average(valToDisplay[2]))
+            self.l_Val_4_dis = tempCalc.convertRawToDeg_F(numpy.average(valToDisplay[3]))
+
             self.l_Val_1.setText(str('%.2f' % self.l_Val_1_dis) + ' °F')
             self.l_Val_2.setText(str('%.2f' % self.l_Val_2_dis) + ' °F')
             self.l_Val_3.setText(str('%.2f' % self.l_Val_3_dis) + ' °F')
+            self.l_Val_4.setText(str('%.2f' % self.l_Val_4_dis) + ' °F')
             
             if self.log_ind == -1: # log first reading at startup
-                self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+                self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis, self.l_Val_4_dis)
             self.log_ind += 1
 
             self.display_ind = 0
@@ -312,13 +330,13 @@ class MainWindow(QMainWindow):
 
         
         if self.log_ind >= self.LOG_INTERVAL: 
-            self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+            self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis, self.l_Val_4_dis)
             self.log_ind = 0
 
-    def logData(self,Output0=int, Output1=int, Input0=int, Input1=int, Input2=int):
+    def logData(self,Output0=int, Output1=int, Input0=int, Input1=int, Input2=int, Input3=int):
         table = self.dbInterface.createTable()
         print("logged data")
-        self.dbInterface.insertIntoTable(table, Output0, Output1, Input0, Input1, Input2)
+        self.dbInterface.insertIntoTable(table, Output0, Output1, Input0, Input1, Input2, Input3)
 
     def stopServer(self):
         if self.server_thread:
