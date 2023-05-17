@@ -32,7 +32,7 @@ class DatabaseInterface():
         self.tableName = f"dataset_{self.date_MDY}"
         try:
             self.dbCursor.execute(f"""CREATE TABLE {self.tableName} 
-            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(32), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
+            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
             print("table created")
         except:
             pass
@@ -316,7 +316,7 @@ class MainWindow(QMainWindow):
             self.display_val.clear()
 
         
-        if self.log_ind < 30: # log every 60 seconds
+        if self.log_ind < 4: # log every 60 seconds
             self.log_ind += 1
         else:
             self.logData(str(self.dbInterface.time_HMS), 0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
