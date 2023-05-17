@@ -35,10 +35,11 @@ class DatabaseInterface():
             (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int);""")
             print("table created")
         except db.Error as e:
-            print(e)
+            if "already exists" not in str(e):
+                print(e)
         return self.tableName
 
-    def insertIntoTable(self, table, Time = str, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int):
+    def insertIntoTable(self, table, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int):
         try:
             self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2) VALUES 
                 (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2})""")
@@ -57,10 +58,6 @@ class ServerThread(QThread):
     
     def __init__(self):
         super().__init__()
-        self.timer = QTimer()
-        self.timer.setInterval(250)
-        self.timer.timeout.connect(self.mainLoop)
-        # self.timer.start()
         
         self.is_connected = False
         self.conn_tup = None
@@ -116,6 +113,8 @@ class ServerThread(QThread):
             self.is_connected = False
             
 class MainWindow(QMainWindow):
+    POLL_TIMER = 250
+    LOG_INTERVAL = 300 # log interval in seconds
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -133,10 +132,6 @@ class MainWindow(QMainWindow):
         self.log_ind = -1
         self.buff = 0
         self.server_thread = None
-
-        self.POLL_TIMER = 250
-        self.LOG_TIMER = 5000
-
         
     def initUI(self):
         self.valMinWidth = 160
@@ -272,14 +267,9 @@ class MainWindow(QMainWindow):
         self.show()
 
         self.timer = QTimer()
-        self.timer.setInterval(250)
+        self.timer.setInterval(int(self.POLL_TIMER))
         self.timer.timeout.connect(self.runServer)
         self.timer.start()
-
-        self.logTimer = QTimer()
-        self.logTimer.setInterval(500)
-        self.timer.timeout.connect(self.logData)
-        # self.timer.start()
 
     def startServer(self):
         if not self.server_thread:
@@ -314,22 +304,21 @@ class MainWindow(QMainWindow):
             self.l_Val_3.setText(str('%.2f' % self.l_Val_3_dis) + ' °F')
             
             if self.log_ind == -1: # log first reading at startup
-                self.logData(str(self.dbInterface.time_HMS), 0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+                self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+            self.log_ind += 1
 
             self.display_ind = 0
             self.display_val.clear()
 
         
-        if self.log_ind < 4: # log every 60 seconds
-            self.log_ind += 1
-        else:
-            self.logData(str(self.dbInterface.time_HMS), 0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
+        if self.log_ind >= self.LOG_INTERVAL: 
+            self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis)
             self.log_ind = 0
 
-    def logData(self,time=str, Output0=int, Output1=int, Input0=int, Input1=int, Input2=int):
+    def logData(self,Output0=int, Output1=int, Input0=int, Input1=int, Input2=int):
         table = self.dbInterface.createTable()
         print("logged data")
-        self.dbInterface.insertIntoTable(table, time, Output0, Output1, Input0, Input1, Input2)
+        self.dbInterface.insertIntoTable(table, Output0, Output1, Input0, Input1, Input2)
 
     def stopServer(self):
         if self.server_thread:
