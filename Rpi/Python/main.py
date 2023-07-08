@@ -32,10 +32,11 @@ class DatabaseInterface():
         self.time_HMS = datetime.today().strftime("%H_%M")
 
     def createTable(self):
-        self.tableName = f"dataset_{self.date_MDY}"
+        # self.tableName = f"dataset_{self.date_MDY}"
+        self.tableName = "dataset"
         try:
             self.dbCursor.execute(f"""CREATE TABLE {self.tableName} 
-            (id INT AUTO_INCREMENT PRIMARY KEY, Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int, Input_3 int);""")
+            (id INT AUTO_INCREMENT PRIMARY KEY, Date_Time CHAR(128), Output_0 int, Output_1 int, Input_0 int, Input_1 int, Input_2 int, Input_3 int);""")
             print("table created")
         except db.Error as e:
             if "already exists" not in str(e):
@@ -44,7 +45,7 @@ class DatabaseInterface():
 
     def insertIntoTable(self, table, Output_0 = int, Output_1 = int, Input_0 = int, Input_1 = int, Input_2 = int, Input_3 = int):
         try:
-            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Time, Output_0, Output_1, Input_0, Input_1, Input_2, Input_3) VALUES 
+            self.dbCursor.execute(f"""INSERT INTO {self.tableName} (Date_Time, Output_0, Output_1, Input_0, Input_1, Input_2, Input_3) VALUES 
                 (NOW(), {Output_0}, {Output_1}, {Input_0}, {Input_1}, {Input_2}, {Input_3})""")
             self.dbConn.commit()
             
