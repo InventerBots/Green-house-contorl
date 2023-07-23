@@ -2,7 +2,7 @@ import socket
 import time
 
 class TCPServer:
-    def __init__(self, host='192.168.20.130', port=10004):
+    def __init__(self, host='0.0.0.0', port=10004):
         # super().__init__()
         
         self.host = host
