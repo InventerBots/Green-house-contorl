@@ -1,6 +1,6 @@
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt6.QtGui import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
 from collections import deque
 import sys
 import numpy
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         self.valMinWidth = 160
         self.setWindowTitle("Greenhouse Control panel")
         self.setStyleSheet("background-color : rgb(47, 62, 67)")
-        # self.setMinimumSize(800, 480)
+        self.setMinimumSize(1024, 600)
         
         self.val_1_label = QLabel("1")
         self.val_1_label.setFont(QFont('Default', 20))
@@ -263,6 +263,8 @@ class MainWindow(QMainWindow):
         mainLayout.addLayout(dataBarLayout, 1, 0)
         mainLayout.addLayout(btnLayout, 2, 0)
         mainLayout.addLayout(fanLayout, 0, 2, 1, 2)
+
+        # mainLayout.setSizeConstraint()
 
         lay = QWidget()
         lay.setLayout(mainLayout)
