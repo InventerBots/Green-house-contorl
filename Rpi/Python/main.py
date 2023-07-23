@@ -8,6 +8,7 @@ import tempCalc
 import server
 import mariadb as db
 from datetime import datetime
+import netifaces as ni
 
 MAX_SENSORS = 5
 SENSORS_CONNECTED = 4
@@ -69,6 +70,8 @@ class ServerThread(QThread):
         self.tempRaw_12bit = []
         self.logset_rise = deque([])
         self.buff = 7200 # number of readings to keep, 7200 = 30m of data
+
+        self.connectedIP = ''
         
     def run(self):
         self.server_obj = server.TCPServer()
@@ -109,6 +112,10 @@ class ServerThread(QThread):
         if not self.conn_tup and not self.is_connected:
             self.conn_tup = self.server_obj.acceptConnection()
             print('Connected to {}'.format(self.conn_tup[1]))
+            try:
+                ConnectionsWindow.remote_ip = str('{}'.format(self.conn_tup[1][0]))
+            except:
+                pass
             self.is_connected = True
         
     def disconnect(self):
@@ -116,12 +123,31 @@ class ServerThread(QThread):
             self.server_obj.disconnect(self.conn_tup)
             self.is_connected = False
             
+class ConnectionsWindow(QWidget):
+    remote_ip = 'N/A'
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("List of connections")
+        self.setMinimumWidth(300)
+        self.layout = QVBoxLayout()
+        self.connection_l_1 = QLabel()
+        
+        self.ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
+        
+        if self.remote_ip != 'N/A':
+            self.connection_l_1.setText(self.ip+' <- '+self.remote_ip)
+            self.connection_l_1.setStyleSheet("color : rgb(0, 255, 0)")
+
+        self.layout.addWidget(self.connection_l_1)
+        self.setLayout(self.layout)
+
 class MainWindow(QMainWindow):
     POLL_TIMER = 250
     LOG_INTERVAL = 300 # log interval in seconds
+    server_thread = None
 
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super().__init__()
         self.initUI()
 
         self.dbInterface = DatabaseInterface()
@@ -135,14 +161,59 @@ class MainWindow(QMainWindow):
         self.display_ind = 0
         self.log_ind = -1
         self.buff = 0
-        self.server_thread = None
+
+        
         
     def initUI(self):
         self.valMinWidth = 160
         self.setWindowTitle("Greenhouse Control panel")
-        self.setStyleSheet("background-color : rgb(47, 62, 67)")
+        self.setStyleSheet("background-color : rgb(31, 31, 31)")
         self.setMinimumSize(1024, 600)
+
+        self.toolbar = QToolBar("toolbar")
+        self.toolbar.setStyleSheet("background-color : rgb(37 ,90 ,144)")
+        self.addToolBar(self.toolbar)
+
+        self.menu_bar = self.menuBar()
         
+        self.file_menu = self.menu_bar.addMenu("&File")
+        self.edit_menu = self.menu_bar.addMenu("&Edit")
+        self.connection_menu = self.menu_bar.addMenu("&Connections")
+
+        self.menu_b_fullscreen = QAction("Fullscreen")
+        self.menu_b_fullscreen.triggered.connect(self.showFullScreen)
+        self.file_menu.addAction(self.menu_b_fullscreen)
+
+        self.menu_b_connect = QAction("Connect client", self)
+        self.menu_b_connect.triggered.connect(self.startServer)
+        self.connection_menu.addAction(self.menu_b_connect)
+
+        self.menu_b_disconnect = QAction("disconnect client", self)
+        self.menu_b_disconnect.triggered.connect(self.stopServer)
+        self.connection_menu.addAction(self.menu_b_disconnect)
+
+        self.menu_c_toolbar_button = QAction("Show toolbar buttons")
+        self.menu_c_toolbar_button.setCheckable(True)
+        self.menu_c_toolbar_button.triggered.connect(self.showConnectionToolbar)
+        self.connection_menu.addAction(self.menu_c_toolbar_button)
+
+        self.toolbar_b_connect = QAction("Connect client", self)
+        self.toolbar_b_connect.setToolTip("Connect to remote device")
+        self.toolbar_b_connect.triggered.connect(self.startServer)
+        self.toolbar_b_connect.setVisible(False)
+        self.toolbar.addAction(self.toolbar_b_connect)
+
+        self.toolbar_b_deviceIP = QAction("Active connections", self)
+        self.toolbar_b_deviceIP.setToolTip("List all active connections")
+        self.toolbar_b_deviceIP.triggered.connect(self.openConnectionsWindow)
+        self.toolbar.addAction(self.toolbar_b_deviceIP)
+
+        self.toolbar.addSeparator()
+
+        self.toolbar_l_localIP = QLabel(ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr'])
+        self.toolbar_l_localIP.setToolTip("Local device IP")
+        self.toolbar.addWidget(self.toolbar_l_localIP)
+
         self.val_1_label = QLabel("1")
         self.val_1_label.setFont(QFont('Default', 20))
         self.val_1_label.setStyleSheet("color : rgb(128, 128, 128)")
@@ -261,10 +332,8 @@ class MainWindow(QMainWindow):
         
         mainLayout.addLayout(dataLayout_main, 0, 0)
         mainLayout.addLayout(dataBarLayout, 1, 0)
-        mainLayout.addLayout(btnLayout, 2, 0)
+        # mainLayout.addLayout(btnLayout, 2, 0)
         mainLayout.addLayout(fanLayout, 0, 2, 1, 2)
-
-        # mainLayout.setSizeConstraint()
 
         lay = QWidget()
         lay.setLayout(mainLayout)
@@ -276,6 +345,17 @@ class MainWindow(QMainWindow):
         self.timer.setInterval(int(self.POLL_TIMER))
         self.timer.timeout.connect(self.runServer)
         self.timer.start()
+
+    def showConnectionToolbar(self):
+        print(self.menu_c_toolbar_button.isChecked())
+        if self.menu_c_toolbar_button.isChecked:
+            self.toolbar_b_connect.setVisible(True)
+        else:
+            self.toolbar_b_connect.setVisible(False)
+
+    def openConnectionsWindow(self):
+        self.connections = ConnectionsWindow()
+        self.connections.show()
 
     def startServer(self):
         if not self.server_thread:
@@ -347,6 +427,7 @@ class MainWindow(QMainWindow):
             self.server_thread.disconnect()
             self.server_thread.quit()
             self.server_thread = None
+            ConnectionsWindow.remote_ip = 'N/A'
             if self.server_thread == None:
                 print('thread closed')
         
