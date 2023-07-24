@@ -122,7 +122,8 @@ class ServerThread(QThread):
         if not self.is_connected and self.conn_tup:
             self.server_obj.disconnect(self.conn_tup)
             self.is_connected = False
-            
+
+     
 class ConnectionsWindow(QWidget):
     remote_ip = 'N/A'
     def __init__(self):
@@ -130,6 +131,7 @@ class ConnectionsWindow(QWidget):
         self.setWindowTitle("List of connections")
         self.setMinimumWidth(300)
         self.layout = QVBoxLayout()
+
         self.connection_l_1 = QLabel()
         
         self.ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
@@ -141,6 +143,23 @@ class ConnectionsWindow(QWidget):
         self.layout.addWidget(self.connection_l_1)
         self.setLayout(self.layout)
 
+class AboutWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("About")
+        self.setMinimumWidth(300)
+        self.layout = QVBoxLayout()
+
+        self.version = QLabel("Version 0.1.3")
+        self.version.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+ 
+        self.clock = QLabel(str(QDateTime.currentDateTime().toString()))
+        self.clock.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        self.layout.addWidget(self.version)
+        self.layout.addWidget(self.clock)
+        self.setLayout(self.layout)
+        
 class MainWindow(QMainWindow):
     POLL_TIMER = 250
     LOG_INTERVAL = 300 # log interval in seconds
@@ -162,8 +181,11 @@ class MainWindow(QMainWindow):
         self.log_ind = -1
         self.buff = 0
 
-        
-        
+        self.uptime = QTime(00, 00, 00)
+
+        self.showConnectionToolbarState = True
+        self.appShowFullsceren = False
+
     def initUI(self):
         self.valMinWidth = 160
         self.setWindowTitle("Greenhouse Control panel")
@@ -172,48 +194,100 @@ class MainWindow(QMainWindow):
 
         self.toolbar = QToolBar("toolbar")
         self.toolbar.setStyleSheet("background-color : rgb(37 ,90 ,144)")
-        self.addToolBar(self.toolbar)
-
+        
+        '''
+            Menu bar items
+        '''
         self.menu_bar = self.menuBar()
         
-        self.file_menu = self.menu_bar.addMenu("&File")
-        self.edit_menu = self.menu_bar.addMenu("&Edit")
-        self.connection_menu = self.menu_bar.addMenu("&Connections")
+        self.menu_c_fullscreen = QAction("Fullscreen")
+        self.menu_c_fullscreen.setCheckable(True)
+        self.menu_c_fullscreen.setShortcut('F11')
+        self.menu_c_fullscreen.setShortcutVisibleInContextMenu(True)
+        self.menu_c_fullscreen.triggered.connect(self.appFullscreen)
 
-        self.menu_b_fullscreen = QAction("Fullscreen")
-        self.menu_b_fullscreen.triggered.connect(self.showFullScreen)
-        self.file_menu.addAction(self.menu_b_fullscreen)
+        self.menu_b_exit = QAction("Exit")
+        self.menu_b_exit.triggered.connect(self.close)
 
         self.menu_b_connect = QAction("Connect client", self)
+        self.menu_b_connect.setShortcut('F2')
+        self.menu_b_connect.setShortcutVisibleInContextMenu(True)
         self.menu_b_connect.triggered.connect(self.startServer)
-        self.connection_menu.addAction(self.menu_b_connect)
 
         self.menu_b_disconnect = QAction("disconnect client", self)
+        self.menu_b_disconnect.setShortcut('F3')
+        self.menu_b_disconnect.setShortcutVisibleInContextMenu(True)
         self.menu_b_disconnect.triggered.connect(self.stopServer)
-        self.connection_menu.addAction(self.menu_b_disconnect)
 
         self.menu_c_toolbar_button = QAction("Show toolbar buttons")
         self.menu_c_toolbar_button.setCheckable(True)
+        self.menu_c_toolbar_button.setChecked(True)
         self.menu_c_toolbar_button.triggered.connect(self.showConnectionToolbar)
-        self.connection_menu.addAction(self.menu_c_toolbar_button)
+
+        self.menu_b_about_window = QAction("About")
+        self.menu_b_about_window.triggered.connect(self.openAboutWindow)
+
+        self.menu_b_edit_sensors = QAction("Edit sensors")
+        self.menu_b_edit_sensors.triggered.connect(self.editSensorsDialog)
+        
+        self.file_menu = self.menu_bar.addMenu("&File")
+        self.edit_menu = self.menu_bar.addMenu("&Edit")
+        self.view_menu = self.menu_bar.addMenu("&View")
+        self.connection_menu = self.menu_bar.addMenu("&Connections")
+        self.Help_menu = self.menu_bar.addMenu("&Help")
+
+        self.file_menu.addAction(self.menu_b_exit)
+
+        self.edit_menu.addAction(self.menu_b_edit_sensors)
+
+        self.view_menu.addAction(self.menu_c_toolbar_button)
+        self.view_menu_appearance = self.view_menu.addMenu("Appearance")
+        self.view_menu_appearance.addAction(self.menu_c_fullscreen)
+
+        self.connection_menu.addAction(self.menu_b_connect)
+        self.connection_menu.addAction(self.menu_b_disconnect)
+        self.connection_menu.addSeparator()
+
+        self.Help_menu.addAction(self.menu_b_about_window)
+
+        '''
+            Tool bar items
+        '''
+        self.addToolBar(self.toolbar)
 
         self.toolbar_b_connect = QAction("Connect client", self)
         self.toolbar_b_connect.setToolTip("Connect to remote device")
         self.toolbar_b_connect.triggered.connect(self.startServer)
-        self.toolbar_b_connect.setVisible(False)
-        self.toolbar.addAction(self.toolbar_b_connect)
+        self.toolbar_b_connect.setVisible(True)
+
+        self.toolbar_b_disconnect = QAction("Disconnect client", self)
+        self.toolbar_b_disconnect.setToolTip("Disconnect form remote connections")
+        self.toolbar_b_disconnect.triggered.connect(self.stopServer)
+        self.toolbar_b_disconnect.setVisible(True)
 
         self.toolbar_b_deviceIP = QAction("Active connections", self)
         self.toolbar_b_deviceIP.setToolTip("List all active connections")
         self.toolbar_b_deviceIP.triggered.connect(self.openConnectionsWindow)
-        self.toolbar.addAction(self.toolbar_b_deviceIP)
-
-        self.toolbar.addSeparator()
 
         self.toolbar_l_localIP = QLabel(ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr'])
         self.toolbar_l_localIP.setToolTip("Local device IP")
-        self.toolbar.addWidget(self.toolbar_l_localIP)
 
+        self.toolbar_l_uptime = QLabel("00:00:00")
+        self.toolbar_l_uptime.setToolTip("Uptime")
+
+        self.toolbar.addAction(self.toolbar_b_deviceIP)
+        self.toolbar.addSeparator()
+        self.toolbar.addWidget(self.toolbar_l_localIP)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.toolbar_b_connect)
+        self.toolbar.addAction(self.toolbar_b_disconnect)
+        self.toolbar.addSeparator()
+        self.toolbar.addWidget(self.toolbar_l_uptime)
+
+        '''
+            Sensor display
+        '''
+        
         self.val_1_label = QLabel("1")
         self.val_1_label.setFont(QFont('Default', 20))
         self.val_1_label.setStyleSheet("color : rgb(128, 128, 128)")
@@ -341,17 +415,53 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(lay)
         self.show()
 
+        '''
+            Timer evnet loops
+        '''
+        self.runtime = QTimer()
+        self.runtime.setInterval(1000)
+        self.runtime.timeout.connect(self.runTime)
+
         self.timer = QTimer()
         self.timer.setInterval(int(self.POLL_TIMER))
         self.timer.timeout.connect(self.runServer)
         self.timer.start()
 
-    def showConnectionToolbar(self):
-        print(self.menu_c_toolbar_button.isChecked())
-        if self.menu_c_toolbar_button.isChecked:
-            self.toolbar_b_connect.setVisible(True)
+    def editSensorsDialog(self):
+        self.dig_edit_sensors = QDialog(self)
+        self.dig_edit_sensors.setWindowTitle("Edit sensors")
+        dig_layout = QVBoxLayout()
+
+        self.ip = QLabel("test")
+        self.ip.setText(str(self.uptime.toPyTime()))
+
+        dig_layout.addWidget(self.ip)
+
+        self.dig_edit_sensors.setLayout(dig_layout)
+        self.dig_edit_sensors.show()
+        self.dig_edit_sensors.exec()
+
+    def appFullscreen(self):
+        if not self.appShowFullsceren:
+            self.appShowFullsceren = True
+            self.showFullScreen()
         else:
+            self.appShowFullsceren = False
+            self.showNormal()
+
+    def showConnectionToolbar(self):
+        if not self.showConnectionToolbarState:
+            self.showConnectionToolbarState = True
+            self.toolbar_b_connect.setVisible(True)
+            self.toolbar_b_disconnect.setVisible(True)
+        else:
+            self.showConnectionToolbarState = False
             self.toolbar_b_connect.setVisible(False)
+            self.toolbar_b_disconnect.setVisible(False)
+            
+    def openAboutWindow(self):
+        self.about = AboutWindow()
+        self.about.show()
 
     def openConnectionsWindow(self):
         self.connections = ConnectionsWindow()
@@ -363,6 +473,8 @@ class MainWindow(QMainWindow):
             self.server_thread = ServerThread()
             self.server_thread.start()
             self.timer.start()
+            self.uptime = QTime(00, 00, 00)
+            self.runtime.start()
             self.buff = self.server_thread.buff
             
             self.l_Val_1.setStyleSheet("color : rgb(255, 255, 255)")
@@ -372,6 +484,10 @@ class MainWindow(QMainWindow):
             # self.l_Val_4.setStyleSheet("color : rgb(0, 0, 0)")
             # self.l_Val_5.setStyleSheet("color : rgb(0, 0, 0)")
             # self.l_Val_6.setStyleSheet("color : rgb(0, 0, 0)")
+
+    def runTime(self):
+        self.uptime = self.uptime.addSecs(1)
+        self.toolbar_l_uptime.setText(str(self.uptime.toPyTime()))
         
     def runServer(self):
         tempList = []
@@ -380,7 +496,7 @@ class MainWindow(QMainWindow):
         if not self.server_thread:
             return -1
         self.server_thread.mainLoop()
-        
+
         self.pb_Dataset.setValue(len(self.server_thread.logset_rise))
         if self.display_ind < 4:
             self.display_val.append(self.server_thread.tempBuff[0])
@@ -403,6 +519,8 @@ class MainWindow(QMainWindow):
             self.l_Val_2.setText(str('%.2f' % self.l_Val_2_dis) + ' °F')
             self.l_Val_3.setText(str('%.2f' % self.l_Val_3_dis) + ' °F')
             self.l_Val_4.setText(str('%.2f' % self.l_Val_4_dis) + ' °F')
+
+            
             
             if self.log_ind == -1: # log first reading at startup
                 self.logData(0, 0, self.l_Val_1_dis, self.l_Val_2_dis, self.l_Val_3_dis, self.l_Val_4_dis)
@@ -424,6 +542,7 @@ class MainWindow(QMainWindow):
     def stopServer(self):
         if self.server_thread:
             self.timer.stop()
+            self.runtime.stop()
             self.server_thread.disconnect()
             self.server_thread.quit()
             self.server_thread = None
