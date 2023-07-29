@@ -1,0 +1,17 @@
+{
+    "network": [
+        {
+            "nic": "enp0s3"
+        }
+    ],
+    
+    "database": [
+        {
+            "user": "gh",
+            "password": "admin",
+            "database": "ghdb",
+            "host": "127.0.0.1",
+            "port": "3306"
+        }
+    ]
+}

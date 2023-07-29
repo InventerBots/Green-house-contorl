@@ -9,20 +9,21 @@ import server
 import mariadb as db
 from datetime import datetime
 import netifaces as ni
+import json
 
 MAX_SENSORS = 5
 SENSORS_CONNECTED = 4
 
 class DatabaseInterface():
-    def __init__(self):
+    def __init__(self, port, host, user, password, database ):
         super().__init__()
         try:
             self.dbConn = db.connect(
-                user="gh",
-                password="admin",
-                host="127.0.0.1",
-                port=3306,
-                database="ghdb"
+                user=user,
+                password=password,
+                host=host,
+                port=int(port),
+                database=database
             )
         except db.Error as e:
             print(f"Error connecting to MariaDB Paltform: {e}")
@@ -164,12 +165,15 @@ class MainWindow(QMainWindow):
     POLL_TIMER = 250
     LOG_INTERVAL = 300 # log interval in seconds
     server_thread = None
+    settingsNic = None
+    settingsDb = None
 
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.loadSettings()
 
-        self.dbInterface = DatabaseInterface()
+        self.dbInterface = DatabaseInterface(self.settingsDb['port'], self.settingsDb['host'], self.settingsDb['user'], self.settingsDb['password'], self.settingsDb['database'])
         self.dbInterface.createTable()
         
         self.timer = QTimer()
@@ -185,6 +189,14 @@ class MainWindow(QMainWindow):
 
         self.showConnectionToolbarState = True
         self.appShowFullsceren = False
+
+    def loadSettings(self):
+        with open("/home/gh/Greenhouse-control/Rpi/Python/settings.json", "r") as settings:
+            data = json.load(settings)
+
+        rawSettings = data
+        self.settingsNic = rawSettings['network'][0]
+        self.settingsDb = rawSettings['database'][0]
 
     def initUI(self):
         self.valMinWidth = 160
