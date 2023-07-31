@@ -14,7 +14,10 @@ import json
 MAX_SENSORS = 5
 SENSORS_CONNECTED = 4
 
-class DatabaseInterface():
+class DatabaseInterface(QWidget):
+    dbError = None
+    dbMsg = None
+
     def __init__(self, port, host, user, password, database ):
         super().__init__()
         try:
@@ -25,13 +28,20 @@ class DatabaseInterface():
                 port=int(port),
                 database=database
             )
+
+            self.dbCursor = self.dbConn.cursor()
+            self.date_MDY = datetime.today().strftime("%m_%d_%Y")
+            self.time_HMS = datetime.today().strftime("%H_%M")
+
         except db.Error as e:
             print(f"Error connecting to MariaDB Paltform: {e}")
-            sys.exit(1)
-        self.dbCursor = self.dbConn.cursor()
+            self.dbError = e
+            self.dbMsg = f'Unable to connect to {database} with user {user} at {host}'
 
-        self.date_MDY = datetime.today().strftime("%m_%d_%Y")
-        self.time_HMS = datetime.today().strftime("%H_%M")
+        # self.dbCursor = self.dbConn.cursor()
+
+        # self.date_MDY = datetime.today().strftime("%m_%d_%Y")
+        # self.time_HMS = datetime.today().strftime("%H_%M")
 
     def createTable(self):
         # self.tableName = f"dataset_{self.date_MDY}"
@@ -57,6 +67,14 @@ class DatabaseInterface():
     def closeConnection(self):
         self.dbCursor.close()
         self.dbConn.close()
+
+    # def databaseError(self, errorMsg):
+    #     self.dlg_db_error = QMessageBox(self)
+    #     self.dlg_db_error.setIcon(QMessageBox.Icon.Critical)
+    #     self.dlg_db_error.setWindowTitle("Edit sensors")
+    #     self.dlg_db_error.setText(str(errorMsg))
+    #     self.dlg_db_error.setStandardButtons(QMessageBox.StandardButton.Ok)
+    #     self.dlg_db_error.show()
 
 
 class ServerThread(QThread):
@@ -160,6 +178,52 @@ class AboutWindow(QWidget):
         self.layout.addWidget(self.version)
         self.layout.addWidget(self.clock)
         self.setLayout(self.layout)
+
+class DbLogin(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Database Login")
+        
+        self.db_login_user = QLineEdit()
+        self.db_login_password = QLineEdit()
+        self.db_login_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.db_login_hostname = QLineEdit()
+        self.db_login_port = QLineEdit()
+        self.db_login_database = QLineEdit()
+        
+        self.db_login_ok = QPushButton("Login")
+        try:
+            loginData = {
+                "user": self.db_login_user,
+                "password": self.db_login_password,
+                "database": self.db_login_database,
+                "host": self.db_login_hostname,
+                "port": self.db_login_port
+            }
+            jsonLoginData = json.dumps(loginData, indent=4)
+            self.db_login_ok.clicked.connect(self.writeToFile(jsonLoginData))
+        except:
+            print("passed")
+
+        db_layout = QFormLayout()
+        db_layout.addRow("User", self.db_login_user)
+        db_layout.addRow("Password", self.db_login_password)
+        db_layout.addRow("Hostname", self.db_login_hostname)
+        db_layout.addRow("Port", self.db_login_port)
+        db_layout.addRow("Database", self.db_login_database)
+
+        buttonLayout = QHBoxLayout()
+        buttonLayout.addWidget(self.db_login_ok)    
+
+        mainLayout = QVBoxLayout()
+        mainLayout.addLayout(db_layout)
+        mainLayout.addLayout(buttonLayout)
+        self.setLayout(mainLayout)
+
+    def writeToFile(self, jsonFile):
+        with open('/home/gh/Greenhouse-control/Rpi/Python/settings.json', 'w') as file:
+            file.write(jsonFile)
+        print("writen to file")
         
 class MainWindow(QMainWindow):
     POLL_TIMER = 250
@@ -174,8 +238,12 @@ class MainWindow(QMainWindow):
         self.loadSettings()
 
         self.dbInterface = DatabaseInterface(self.settingsDb['port'], self.settingsDb['host'], self.settingsDb['user'], self.settingsDb['password'], self.settingsDb['database'])
-        self.dbInterface.createTable()
-        
+        if self.dbInterface.dbError is None:
+            self.dbInterface.createTable()
+        else:
+            self.databaseError(self.dbInterface.dbMsg)
+
+            
         self.timer = QTimer()
         self.timer.setInterval(250)
         self.timer.timeout.connect(self.runServer)
@@ -221,6 +289,9 @@ class MainWindow(QMainWindow):
         self.menu_b_exit = QAction("Exit")
         self.menu_b_exit.triggered.connect(self.close)
 
+        self.menu_b_login = QAction("Database login")
+        self.menu_b_login.triggered.connect(self.openLoginWindow)
+
         self.menu_b_connect = QAction("Connect client", self)
         self.menu_b_connect.setShortcut('F2')
         self.menu_b_connect.setShortcutVisibleInContextMenu(True)
@@ -240,7 +311,6 @@ class MainWindow(QMainWindow):
         self.menu_b_about_window.triggered.connect(self.openAboutWindow)
 
         self.menu_b_edit_sensors = QAction("Edit sensors")
-        self.menu_b_edit_sensors.triggered.connect(self.editSensorsDialog)
         
         self.file_menu = self.menu_bar.addMenu("&File")
         self.edit_menu = self.menu_bar.addMenu("&Edit")
@@ -249,8 +319,10 @@ class MainWindow(QMainWindow):
         self.Help_menu = self.menu_bar.addMenu("&Help")
 
         self.file_menu.addAction(self.menu_b_exit)
+        self.file_menu.addAction(self.menu_b_login)
 
         self.edit_menu.addAction(self.menu_b_edit_sensors)
+        self.edit_menu.triggered.connect(self.testWindow)
 
         self.view_menu.addAction(self.menu_c_toolbar_button)
         self.view_menu_appearance = self.view_menu.addMenu("Appearance")
@@ -281,15 +353,19 @@ class MainWindow(QMainWindow):
         self.toolbar_b_deviceIP.setToolTip("List all active connections")
         self.toolbar_b_deviceIP.triggered.connect(self.openConnectionsWindow)
 
-        self.toolbar_l_localIP = QLabel(ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr'])
-        self.toolbar_l_localIP.setToolTip("Local device IP")
+        try:
+            self.toolbar_l_localIP = QLabel(ni.ifaddresses(self.settingsNic['nic'])[ni.AF_INET][0]['addr'])
+            self.toolbar_l_localIP.setToolTip("Local device IP")
+            self.toolbar.addWidget(self.toolbar_l_localIP)
+        except:
+            pass
 
         self.toolbar_l_uptime = QLabel("00:00:00")
         self.toolbar_l_uptime.setToolTip("Uptime")
 
         self.toolbar.addAction(self.toolbar_b_deviceIP)
         self.toolbar.addSeparator()
-        self.toolbar.addWidget(self.toolbar_l_localIP)
+        
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.toolbar_b_connect)
         self.toolbar.addAction(self.toolbar_b_disconnect)
@@ -392,8 +468,7 @@ class MainWindow(QMainWindow):
         self.pb_Dataset.setRange(0, 7200)
         
         '''
-        Layoyts
-        
+            Layoyts
         '''
         mainLayout = QGridLayout()
         dataLayout_main = QHBoxLayout()
@@ -439,19 +514,34 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.runServer)
         self.timer.start()
 
-    def editSensorsDialog(self):
-        self.dig_edit_sensors = QDialog(self)
-        self.dig_edit_sensors.setWindowTitle("Edit sensors")
-        dig_layout = QVBoxLayout()
+    def databaseError(self, errorMsg):
+        self.dlg_db_error = QMessageBox(self)
+        button = self.dlg_db_error.critical(self,'Database Error', str(errorMsg))
+        self.dlg_db_error.setStandardButtons(QMessageBox.StandardButton.Ok)
 
-        self.ip = QLabel("test")
-        self.ip.setText(str(self.uptime.toPyTime()))
+        if button is QMessageBox.StandardButton.Ok:
+            DbLogin()
 
-        dig_layout.addWidget(self.ip)
+    def testWindow(self):
+        self.test_window = QMessageBox(self)
+        button = self.test_window.information(self, "Test Window", "Hello World!", QMessageBox.StandardButton.Apply)
 
-        self.dig_edit_sensors.setLayout(dig_layout)
-        self.dig_edit_sensors.show()
-        self.dig_edit_sensors.exec()
+        self.db_login_user = QLineEdit()
+        self.db_login_password = QLineEdit()
+        self.db_login_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.db_login_hostname = QLineEdit()
+        self.db_login_port = QLineEdit()
+        self.db_login_database = QLineEdit()
+        
+        if button is QMessageBox.StandardButton.Apply:
+            print("apply")
+
+    def openLoginWindow(self):
+        self.loginWindow = DbLogin()
+        self.loginWindow.show()
+
+    def appClose(self):
+        self.close()
 
     def appFullscreen(self):
         if not self.appShowFullsceren:
@@ -480,7 +570,7 @@ class MainWindow(QMainWindow):
         self.connections.show()
 
     def startServer(self):
-        if not self.server_thread:
+        if not self.server_thread and self.dbInterface.dbError == None:
             print('starting server thread')
             self.server_thread = ServerThread()
             self.server_thread.start()
